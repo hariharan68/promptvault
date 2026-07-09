@@ -1,0 +1,40 @@
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Egg / build artifacts
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checkers
+.mypy_cache/
+.pyright/
+
+# Environment / secrets
+.env
+.env.local
+*.env
+
+# Database files
+*.sqlite3
+*.db
+
+# Logs
+*.log

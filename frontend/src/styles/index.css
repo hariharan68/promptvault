@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────
+   PromptVault — Light Theme Design Tokens
+   ───────────────────────────────────────────── */
+:root {
+  --color-bg:        #f4f6fb;  /* page background (soft lavender-gray) */
+  --color-surface:   #ffffff;  /* cards, sidebar, modals */
+  --color-surface2:  #f7f8fc;  /* sunken areas (inputs, content preview) */
+  --color-border:    #eaecf3;  /* default borders */
+  --color-border2:   #e0e3ec;  /* stronger / hover borders */
+  --color-primary:   #6c63ff;  /* brand accent */
+  --color-primary-d: #5a52e0;  /* primary hover */
+  --color-primary-l: #8b83ff;  /* primary light */
+  --color-text:      #232735;  /* headings */
+  --color-text2:     #4b5169;  /* body text */
+  --color-muted:     #868da3;  /* secondary text */
+  --color-subtle:    #aeb4c6;  /* tertiary text */
+  --color-faint:     #c9cdda;  /* faintest text / icons */
+}
+
+@theme {
+  --color-bg:       #f4f6fb;
+  --color-surface:  #ffffff;
+  --color-border:   #eaecf3;
+  --color-primary:  #6c63ff;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: #f4f6fb;
+  color: #232735;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d8dce8; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #c2c7d8; }
+
+::selection { background: #6c63ff26; color: #232735; }
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.animate-in {
+  animation: fadeSlideUp 0.2s ease-out;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #eef0f6 25%, #f6f7fb 50%, #eef0f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
