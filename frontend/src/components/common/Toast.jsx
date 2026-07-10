@@ -28,17 +28,18 @@ export function ToastProvider({ children }) {
           <div
             key={t.id}
             className={`pointer-events-auto flex items-center gap-3 pl-5 pr-6 py-3.5 rounded-xl
-              shadow-[0_12px_32px_-8px_rgba(30,34,52,0.18)] border text-sm font-medium animate-in
+              border text-sm font-medium animate-in
+              shadow-[0_8px_24px_-8px_rgba(17,24,39,0.15)]
               ${t.type === "success"
-                ? "bg-white dark:bg-[#161923] border-emerald-500/25 text-emerald-700 dark:text-emerald-400"
+                ? "bg-white dark:bg-[#252733] border-[#E5E7EB] dark:border-[#363847] text-emerald-700 dark:text-emerald-400"
                 : t.type === "error"
-                ? "bg-white dark:bg-[#161923] border-red-500/25 text-red-600 dark:text-red-400"
-                : "bg-white dark:bg-[#161923] border-[#eaecf3] dark:border-[#252838] text-[#232735] dark:text-[#e4e6f0]"}`}
+                ? "bg-white dark:bg-[#252733] border-[#E5E7EB] dark:border-[#363847] text-red-600 dark:text-red-400"
+                : "bg-white dark:bg-[#252733] border-[#E5E7EB] dark:border-[#363847] text-[#111827] dark:text-[#F1F2F6]"}`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
-              ${t.type === "success" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                : t.type === "error" ? "bg-red-500/15 text-red-500 dark:text-red-400"
-                : "bg-[#6c63ff]/15 text-[#6c63ff]"}`}>
+              ${t.type === "success" ? "bg-emerald-500/15 text-emerald-600"
+                : t.type === "error" ? "bg-red-500/15 text-red-500"
+                : "bg-[#F3EEF3] text-[#714B67]"}`}>
               {t.type === "success"
                 ? <Check size={12} weight="bold" />
                 : t.type === "error"

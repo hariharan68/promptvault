@@ -1,30 +1,35 @@
 const variants = {
-  primary: `bg-gradient-to-r from-[#6c63ff] to-[#8b83ff]
-    hover:from-[#5a52e0] hover:to-[#7a71f5]
-    text-white font-semibold
-    shadow-[0_8px_20px_-6px_rgba(108,99,255,0.5)]
-    hover:shadow-[0_10px_24px_-6px_rgba(108,99,255,0.6)]
+  primary: `bg-[#714B67] hover:bg-[#5A3A52]
+    text-white font-medium
+    shadow-[0_4px_14px_-4px_rgba(113,75,103,0.4)]
+    hover:shadow-[0_6px_18px_-4px_rgba(113,75,103,0.5)]
     active:scale-[0.98]`,
 
-  secondary: `bg-white dark:bg-[#161923] hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a]
-    text-[#232735] dark:text-[#e4e6f0] font-medium
-    border border-[#e0e3ec] dark:border-[#2d3047] hover:border-[#6c63ff]/40
+  accent: `bg-[#714B67] hover:bg-[#5A3A52]
+    text-white font-medium
+    shadow-[0_4px_14px_-4px_rgba(113,75,103,0.45)]
+    hover:shadow-[0_6px_18px_-4px_rgba(113,75,103,0.55)]
     active:scale-[0.98]`,
 
-  ghost: `bg-white dark:bg-[#161923] hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a]
-    text-[#5b6178] dark:text-[#959baf] hover:text-[#232735] dark:hover:text-[#e4e6f0] font-medium
-    border border-[#e0e3ec] dark:border-[#2d3047] hover:border-[#c9cdda] dark:hover:border-[#3a3e58]
+  secondary: `bg-white dark:bg-[#252733] hover:bg-[#F3F4F6] dark:hover:bg-[#2C2E3A]
+    text-[#111827] dark:text-[#F1F2F6] font-medium
+    border border-[#E5E7EB] dark:border-[#363847] hover:border-[#714B67] dark:hover:border-[#714B67]
     active:scale-[0.98]`,
 
-  danger: `bg-[#ef4444]/8 hover:bg-[#ef4444]/14 text-[#ef4444] font-medium
-    border border-[#ef4444]/25 hover:border-[#ef4444]/45
+  ghost: `bg-transparent hover:bg-[#F3F4F6] dark:hover:bg-[#2C2E3A]
+    text-[#374151] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-[#F1F2F6] font-medium
+    border border-[#E5E7EB] dark:border-[#363847]
+    active:scale-[0.98]`,
+
+  danger: `bg-red-500/8 hover:bg-red-500/14 text-red-500 font-medium
+    border border-red-500/25 hover:border-red-500/45
     active:scale-[0.98]`,
 };
 
 const sizes = {
-  sm: "px-3.5 py-2 text-xs rounded-lg",
-  md: "px-4 py-2.5 text-sm rounded-lg",
-  lg: "px-5 py-3 text-sm rounded-xl",
+  sm: "px-3.5 py-1.5 text-xs rounded-full",
+  md: "px-4 py-2 text-sm rounded-full",
+  lg: "px-5 py-2.5 text-sm rounded-full",
 };
 
 export default function Button({

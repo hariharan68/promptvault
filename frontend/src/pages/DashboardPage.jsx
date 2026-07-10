@@ -11,24 +11,24 @@ const statCards = [
     label: "Total Prompts",
     key: "total",
     to: "/prompts",
-    gradient: "from-[#6c63ff] to-[#8b83ff]",
-    shadow: "shadow-[0_14px_30px_-12px_rgba(108,99,255,0.55)]",
+    gradient: "from-[#714B67] to-[#9B6E93]",
+    shadow: "shadow-[0_14px_30px_-12px_rgba(113,75,103,0.5)]",
   },
   {
     Icon: Star,
     label: "Favorites",
     key: "favorites",
     to: "/prompts?is_favorite=true",
-    gradient: "from-[#4f46e5] to-[#6c63ff]",
-    shadow: "shadow-[0_14px_30px_-12px_rgba(79,70,229,0.55)]",
+    gradient: "from-[#5A3A52] to-[#714B67]",
+    shadow: "shadow-[0_14px_30px_-12px_rgba(90,58,82,0.5)]",
   },
   {
     Icon: FolderSimple,
     label: "Groups",
     key: "groups",
-    to: "/prompts",
-    gradient: "from-[#7c73ff] to-[#a89fff]",
-    shadow: "shadow-[0_14px_30px_-12px_rgba(124,115,255,0.5)]",
+    to: "/groups",
+    gradient: "from-[#4FA8E0] to-[#6EC2F5]",
+    shadow: "shadow-[0_14px_30px_-12px_rgba(79,168,224,0.45)]",
   },
 ];
 
@@ -40,18 +40,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getPrompts(),
-      getPrompts({ is_favorite: true }),
-      getGroups(),
-    ]).then(([all, favs, groups]) => {
-      setStats({
-        total: all.data.length,
-        favorites: favs.data.length,
-        groups: groups.data.length,
-      });
-      setRecent(all.data.slice(0, 5));
-    }).catch(() => {}).finally(() => setLoading(false));
+    Promise.all([getPrompts(), getPrompts({ is_favorite: true }), getGroups()])
+      .then(([all, favs, groups]) => {
+        setStats({ total: all.data.length, favorites: favs.data.length, groups: groups.data.length });
+        setRecent(all.data.slice(0, 5));
+      }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const isNew = !loading && stats.total === 0;
@@ -59,32 +52,26 @@ export default function DashboardPage() {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-8">
+    <div className="max-w-4xl mx-auto flex flex-col gap-10">
 
       <div>
-        <p className="text-[#868da3] dark:text-[#737a95] text-sm font-medium mb-1">{greeting}</p>
-        <h1 className="text-3xl font-bold text-[#232735] dark:text-[#e4e6f0]">
-          {user?.username ? `${user.username}'s Vault` : "Your Vault"}
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#714B67] dark:text-[#C4A0BA] mb-1.5">Your vault</p>
+        <h1 className="font-serif text-3xl text-[#111827] dark:text-[#F1F2F6] leading-tight">
+          {greeting}. {user?.username ? `Here's your vault, ${user.username}.` : "Here's what's stored."}
         </h1>
-        <p className="text-[#868da3] dark:text-[#737a95] mt-1.5 text-sm">
-          {isNew
-            ? "Start by creating your first prompt."
-            : `You have ${stats.total} prompt${stats.total !== 1 ? "s" : ""} saved.`}
-        </p>
       </div>
 
+      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {statCards.map((card) => {
           const { Icon } = card;
           return (
             <Link key={card.key} to={card.to} className="group block">
               <div className={`relative overflow-hidden bg-gradient-to-br ${card.gradient} ${card.shadow}
-                rounded-2xl p-5 transition-all duration-300 cursor-pointer
-                hover:-translate-y-0.5`}>
-                <div className="absolute -top-8 -right-8 w-28 h-28 bg-white/15 rounded-full blur-2xl pointer-events-none" />
+                rounded-xl p-5 transition-all duration-300 cursor-pointer hover:-translate-y-0.5`}>
+                <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/15 rounded-full blur-2xl pointer-events-none" />
                 <div className="relative">
-                  <div className="inline-flex items-center justify-center w-9 h-9 rounded-xl
-                    bg-white/20 text-white mb-4">
+                  <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/20 text-white mb-4">
                     <Icon size={18} weight="regular" />
                   </div>
                   <div className="text-4xl font-bold text-white mb-0.5">
@@ -101,41 +88,30 @@ export default function DashboardPage() {
       </div>
 
       {isNew && (
-        <div className="relative overflow-hidden bg-white dark:bg-[#161923]
-          border border-[#eaecf3] dark:border-[#252838] rounded-2xl p-6
-          shadow-[0_1px_3px_rgba(30,34,52,0.04)]">
-          <div className="absolute -top-4 -right-4 w-32 h-32 bg-[#6c63ff]/8 rounded-full blur-2xl pointer-events-none" />
-          <div className="relative flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <p className="font-bold text-[#232735] dark:text-[#e4e6f0] mb-1">Create your first prompt</p>
-              <p className="text-sm text-[#868da3] dark:text-[#737a95] leading-relaxed">
-                Start building your personal AI prompt library.
-                <br />
-                Save, organize, and reuse your best prompts instantly.
-              </p>
-            </div>
-            <button
-              onClick={() => navigate("/prompts")}
-              className="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-[#6c63ff] to-[#8b83ff]
-                hover:from-[#5a52e0] hover:to-[#7a71f5] text-white text-sm font-semibold
-                px-5 py-2.5 rounded-xl transition-all duration-200
-                shadow-[0_8px_20px_-6px_rgba(108,99,255,0.5)]
-                hover:shadow-[0_10px_24px_-6px_rgba(108,99,255,0.6)]"
-            >
-              Get Started <ArrowRight size={14} weight="bold" />
-            </button>
-          </div>
+        <div className="bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847] rounded-xl p-6">
+          <p className="font-semibold text-[#111827] dark:text-[#F1F2F6] mb-1">Create your first prompt</p>
+          <p className="text-sm text-[#6B7280] leading-relaxed mb-4">
+            Start building your personal AI prompt library.
+          </p>
+          <button
+            onClick={() => navigate("/prompts")}
+            className="inline-flex items-center gap-2 bg-[#714B67] hover:bg-[#5A3A52]
+              text-white text-sm font-medium
+              px-4 py-2 rounded-full transition-all duration-200"
+          >
+            Get Started <ArrowRight size={14} weight="bold" />
+          </button>
         </div>
       )}
 
+      {/* Recent prompts */}
       {recent.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-4 bg-gradient-to-b from-[#6c63ff] to-[#8b83ff] rounded-full" />
-              <h2 className="font-bold text-[#232735] dark:text-[#e4e6f0] text-sm">Recent Prompts</h2>
-            </div>
-            <Link to="/prompts" className="flex items-center gap-1 text-xs text-[#868da3] dark:text-[#737a95] hover:text-[#6c63ff] transition-colors font-medium">
+            <h2 className="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#374151] dark:text-[#9CA3AF]">
+              Recent Prompts
+            </h2>
+            <Link to="/prompts" className="flex items-center gap-1 text-xs text-[#6B7280] hover:text-[#714B67] transition-colors font-medium">
               View all <ArrowRight size={11} />
             </Link>
           </div>
@@ -145,39 +121,36 @@ export default function DashboardPage() {
               <Link
                 key={p.id}
                 to="/prompts"
-                className="group/row flex items-center justify-between
-                  bg-white dark:bg-[#161923] border border-[#eaecf3] dark:border-[#252838]
-                  rounded-xl px-4 py-3 hover:border-[#6c63ff]/30
-                  hover:shadow-[0_6px_18px_-10px_rgba(108,99,255,0.3)]
-                  transition-all duration-200 shadow-[0_1px_3px_rgba(30,34,52,0.04)]"
+                className="flex items-center justify-between
+                  bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847]
+                  rounded-xl px-4 py-3 hover:border-[#714B67] hover:shadow-[0_2px_8px_-2px_rgba(113,75,103,0.15)] transition-all duration-200"
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <Star
-                    size={14}
+                    size={13}
                     weight={p.is_favorite ? "fill" : "regular"}
-                    className={`flex-shrink-0 transition-all ${p.is_favorite ? "text-amber-400" : "text-[#d5d9e4] dark:text-[#3a3e55]"}`}
+                    className={`flex-shrink-0 ${p.is_favorite ? "text-[#714B67]" : "text-[#D1D5DB] dark:text-[#363847]"}`}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[#232735] dark:text-[#e4e6f0] truncate">{p.title}</p>
+                    <p className="text-sm font-medium text-[#111827] dark:text-[#F1F2F6] truncate">{p.title}</p>
                     {p.description && (
-                      <p className="text-xs text-[#868da3] dark:text-[#737a95] truncate mt-0.5">{p.description}</p>
+                      <p className="text-xs text-[#6B7280] truncate mt-0.5">{p.description}</p>
                     )}
                   </div>
                 </div>
-
                 <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                   {p.tags?.length > 0 && (
                     <div className="hidden sm:flex gap-1">
                       {p.tags.slice(0, 2).map((t) => (
                         <span key={t.id}
-                          className="text-xs bg-[#6c63ff]/8 border border-[#6c63ff]/18
-                            px-2 py-0.5 rounded-full text-[#6c63ff]">
+                          className="text-xs bg-[#F3EEF3] dark:bg-[#3D2B3A] border border-[#E0D0DC] dark:border-[#5A3A54]
+                            px-2 py-0.5 rounded-full text-[#714B67] dark:text-[#C4A0BA]">
                           #{t.name}
                         </span>
                       ))}
                     </div>
                   )}
-                  <span className="text-[11px] text-[#aeb4c6] dark:text-[#525872] font-medium">
+                  <span className="text-[11px] text-[#9CA3AF] dark:text-[#6B7280] font-medium">
                     {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   </span>
                 </div>
@@ -191,20 +164,21 @@ export default function DashboardPage() {
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={() => navigate("/prompts")}
-            className="bg-gradient-to-r from-[#6c63ff] to-[#8b83ff] hover:from-[#5a52e0] hover:to-[#7a71f5]
-              text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all duration-200
-              shadow-[0_8px_20px_-6px_rgba(108,99,255,0.5)]"
+            className="inline-flex items-center gap-2 bg-[#714B67] hover:bg-[#5A3A52]
+              text-white text-sm font-medium
+              px-5 py-2.5 rounded-full transition-all duration-200"
           >
             Browse All Prompts
           </button>
           <Link
             to="/prompts?is_favorite=true"
-            className="flex items-center gap-2 border border-[#e0e3ec] dark:border-[#2d3047]
-              hover:border-[#6c63ff]/40
-              text-[#5b6178] dark:text-[#959baf] hover:text-[#6c63ff] text-sm font-medium
-              px-5 py-2.5 rounded-xl transition-all duration-200 bg-white dark:bg-[#161923]"
+            className="inline-flex items-center gap-2 border border-[#E5E7EB] dark:border-[#363847]
+              hover:border-[#714B67] dark:hover:border-[#714B67]
+              text-[#374151] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]
+              text-sm font-medium px-5 py-2.5 rounded-full transition-all duration-200
+              bg-white dark:bg-[#252733]"
           >
-            <Star size={13} weight="fill" className="text-amber-400" /> View Favorites
+            <Star size={13} weight="fill" className="text-[#714B67]" /> View Favorites
           </Link>
         </div>
       )}

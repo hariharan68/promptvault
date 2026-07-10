@@ -12,9 +12,7 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    getGroups().then((r) => setGroups(r.data)).catch(() => {});
-  }, []);
+  useEffect(() => { getGroups().then((r) => setGroups(r.data)).catch(() => {}); }, []);
 
   useEffect(() => {
     if (initial) {
@@ -30,9 +28,7 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
     }
   }, [initial]);
 
-  function set(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  function set(key, value) { setForm((prev) => ({ ...prev, [key]: value })); }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -57,24 +53,11 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-
-      <Input
-        label="Title"
-        value={form.title}
-        onChange={(e) => set("title", e.target.value)}
-        placeholder="Give your prompt a clear, descriptive title"
-        required
-      />
-
-      <Input
-        label="Description"
-        value={form.description}
-        onChange={(e) => set("description", e.target.value)}
-        placeholder="Optional - what does this prompt do?"
-      />
+      <Input label="Title" value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Give your prompt a clear, descriptive title" required />
+      <Input label="Description" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Optional - what does this prompt do?" />
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#868da3] dark:text-[#737a95]">
+        <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7280] dark:text-[#6B7280]">
           Prompt Content
         </label>
         <textarea
@@ -83,49 +66,38 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
           placeholder="Write your prompt here..."
           required
           rows={8}
-          className="w-full bg-[#f7f8fc] dark:bg-[#0f1118] border border-[#e0e3ec] dark:border-[#2d3047]
-            rounded-xl text-[#232735] dark:text-[#e4e6f0]
-            placeholder:text-[#aeb4c6] dark:placeholder:text-[#525872]
+          className="w-full bg-[#F3F4F6] dark:bg-[#2C2E3A] border border-[#E5E7EB] dark:border-[#363847]
+            rounded-xl text-[#111827] dark:text-[#F1F2F6]
+            placeholder:text-[#9CA3AF] dark:placeholder:text-[#6B7280]
             px-4 py-3.5 text-sm outline-none resize-y
-            focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12
-            focus:bg-white dark:focus:bg-[#161923]
-            hover:border-[#c9cdda] dark:hover:border-[#3a3e58]
+            focus:border-[#714B67] focus:ring-2 focus:ring-[#714B67]/15 focus:bg-white dark:focus:bg-[#252733]
+            hover:border-[#9CA3AF] dark:hover:border-[#4A4D60]
             transition-all duration-200 font-mono leading-relaxed"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#868da3] dark:text-[#737a95]">Group</label>
+          <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7280] dark:text-[#6B7280]">Group</label>
           <select
             value={form.group_id}
             onChange={(e) => set("group_id", e.target.value)}
-            className="w-full bg-[#f7f8fc] dark:bg-[#0f1118] border border-[#e0e3ec] dark:border-[#2d3047]
-              rounded-xl text-sm text-[#232735] dark:text-[#e4e6f0]
+            className="w-full bg-[#F3F4F6] dark:bg-[#2C2E3A] border border-[#E5E7EB] dark:border-[#363847]
+              rounded-xl text-sm text-[#111827] dark:text-[#F1F2F6]
               px-3.5 py-2.5 outline-none
-              focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12
-              focus:bg-white dark:focus:bg-[#161923]
-              hover:border-[#c9cdda] dark:hover:border-[#3a3e58]
+              focus:border-[#714B67] focus:ring-2 focus:ring-[#714B67]/15 focus:bg-white dark:focus:bg-[#252733]
+              hover:border-[#9CA3AF] dark:hover:border-[#4A4D60]
               transition-all duration-200 cursor-pointer"
           >
             <option value="">No group</option>
-            {groups.map((g) => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
+            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
           </select>
         </div>
-
-        <Input
-          label="Tags (comma-separated)"
-          value={form.tag_names}
-          onChange={(e) => set("tag_names", e.target.value)}
-          placeholder="python, writing, gpt-4"
-        />
+        <Input label="Tags (comma-separated)" value={form.tag_names} onChange={(e) => set("tag_names", e.target.value)} placeholder="python, writing, gpt-4" />
       </div>
 
       {error && (
-        <div className="flex items-center gap-2.5 text-sm text-red-500
-          bg-red-500/6 border border-red-500/20 rounded-xl px-3.5 py-2.5">
+        <div className="flex items-center gap-2.5 text-sm text-red-500 bg-red-500/6 border border-red-500/20 rounded-xl px-3.5 py-2.5">
           <Warning size={15} weight="fill" className="flex-shrink-0" />
           {error}
         </div>

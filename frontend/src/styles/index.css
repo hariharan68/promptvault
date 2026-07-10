@@ -1,33 +1,32 @@
-@import '@fontsource-variable/outfit';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/source-serif-4';
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─────────────────────────────────────────────
-   PromptVault - Light Theme Design Tokens
+   PromptVault – Plum Design Tokens
    ───────────────────────────────────────────── */
 :root {
-  --color-bg:        #f4f6fb;  /* page background (soft lavender-gray) */
-  --color-surface:   #ffffff;  /* cards, sidebar, modals */
-  --color-surface2:  #f7f8fc;  /* sunken areas (inputs, content preview) */
-  --color-border:    #eaecf3;  /* default borders */
-  --color-border2:   #e0e3ec;  /* stronger / hover borders */
-  --color-primary:   #6c63ff;  /* brand accent */
-  --color-primary-d: #5a52e0;  /* primary hover */
-  --color-primary-l: #8b83ff;  /* primary light */
-  --color-text:      #232735;  /* headings */
-  --color-text2:     #4b5169;  /* body text */
-  --color-muted:     #868da3;  /* secondary text */
-  --color-subtle:    #aeb4c6;  /* tertiary text */
-  --color-faint:     #c9cdda;  /* faintest text / icons */
+  --color-bg:        #FFFFFF;   /* white */
+  --color-surface:   #FFFFFF;   /* cards */
+  --color-surface2:  #F3F4F6;   /* sunken inputs */
+  --color-border:    #E5E7EB;   /* default borders */
+  --color-border2:   #D1D5DB;   /* strong borders */
+  --color-accent:    #714B67;   /* plum */
+  --color-accent-d:  #5A3A52;   /* plum hover */
+  --color-accent-l:  #9B6E93;   /* plum light */
+  --color-accent-bg: #F3EEF3;   /* plum wash */
+  --color-text:      #111827;   /* heading */
+  --color-text2:     #374151;   /* body */
+  --color-muted:     #6B7280;   /* muted */
+  --color-subtle:    #9CA3AF;   /* subtle */
+  --color-faint:     #D1D5DB;   /* faintest */
 }
 
 @theme {
-  --color-bg:       #f4f6fb;
-  --color-surface:  #ffffff;
-  --color-border:   #eaecf3;
-  --color-primary:  #6c63ff;
-  --font-sans: 'Outfit Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans:  'Inter Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: 'Source Serif 4 Variable', Georgia, "Times New Roman", serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -35,9 +34,9 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background-color: #f4f6fb;
-  color: #232735;
-  font-family: 'Outfit Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #FFFFFF;
+  color: #111827;
+  font-family: 'Inter Variable', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 15px;
   line-height: 1.5;
   min-height: 100vh;
@@ -47,18 +46,19 @@ body {
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d8dce8; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #c2c7d8; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
-.dark ::-webkit-scrollbar-thumb { background: #2d3047; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #3a3e58; }
+.dark ::-webkit-scrollbar-thumb { background: #363847; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #4A4D60; }
 
 .dark body {
-  background-color: #0d0f17;
-  color: #e4e6f0;
+  background-color: #1A1B22;
+  color: #F1F2F6;
 }
 
-::selection { background: #6c63ff26; color: #232735; }
+::selection { background: #714B6726; color: #111827; }
+.dark ::selection { background: #714B6740; color: #F1F2F6; }
 
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(8px); }
@@ -75,12 +75,12 @@ body {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #eef0f6 25%, #f6f7fb 50%, #eef0f6 75%);
+  background: linear-gradient(90deg, #EDEEF2 25%, #F3F4F6 50%, #EDEEF2 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
 .dark .skeleton {
-  background: linear-gradient(90deg, #1a1d2a 25%, #1e2130 50%, #1a1d2a 75%);
+  background: linear-gradient(90deg, #2C2E3A 25%, #363847 50%, #2C2E3A 75%);
   background-size: 200% 100%;
 }

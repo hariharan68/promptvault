@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { List, GearSix, Sun, Moon, SignOut, CaretDown } from "@phosphor-icons/react";
+import { List, GearSix, Sun, Moon, SignOut, CaretDown, Lock } from "@phosphor-icons/react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTheme } from "../../context/ThemeContext.jsx";
 
@@ -38,100 +38,98 @@ export default function Navbar({ onMenuOpen }) {
   }
 
   return (
-    <header className="h-16 flex items-center justify-between px-5 md:px-7
-      bg-white dark:bg-[#161923] border-b border-[#eaecf3] dark:border-[#252838] flex-shrink-0">
+    <header className="h-14 flex items-center justify-between px-5 md:px-6
+      bg-white/90 dark:bg-[#1A1B22]/90 border-b border-[#E5E7EB] dark:border-[#363847]
+      backdrop-blur flex-shrink-0">
 
       {/* Mobile: hamburger + logo */}
       <div className="flex items-center gap-3 md:hidden">
         <button
           onClick={onMenuOpen}
-          className="w-9 h-9 flex items-center justify-center rounded-lg
-            text-[#868da3] dark:text-[#737a95] hover:text-[#232735] dark:hover:text-[#e4e6f0]
-            hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a] transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-full
+            text-[#6B7280] hover:text-[#111827] dark:hover:text-[#F1F2F6]
+            hover:bg-[#F3F4F6] dark:hover:bg-[#2C2E3A] transition-colors"
         >
-          <List size={20} />
+          <List size={18} />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-gradient-to-br from-[#6c63ff] to-[#8b83ff] rounded-md flex items-center justify-center">
-            <span className="text-white font-black text-xs">V</span>
+          <div className="w-7 h-7 bg-[#714B67] rounded-md flex items-center justify-center">
+            <Lock size={14} className="text-white" weight="bold" />
           </div>
-          <span className="font-bold text-[#232735] dark:text-[#e4e6f0] text-base">PromptVault</span>
+          <span className="font-serif text-[#111827] dark:text-[#F1F2F6] text-base tracking-tight">PromptVault</span>
         </div>
       </div>
 
       {/* Desktop: page title */}
-      <h1 className="hidden md:block text-base font-semibold text-[#232735] dark:text-[#e4e6f0] tracking-tight">
+      <p className="hidden md:block text-[13px] font-semibold uppercase tracking-[0.1em] text-[#9CA3AF] dark:text-[#6B7280]">
         {title}
-      </h1>
+      </p>
 
       {/* Right side */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1">
 
         {/* Dark mode toggle */}
         <button
           onClick={toggle}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          className="w-9 h-9 flex items-center justify-center rounded-lg
-            text-[#868da3] dark:text-[#737a95] hover:text-[#232735] dark:hover:text-[#e4e6f0]
-            hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a] transition-colors"
+          title={theme === "dark" ? "Switch to light" : "Switch to dark"}
+          className="w-8 h-8 flex items-center justify-center rounded-full
+            text-[#6B7280] dark:text-[#6B7280] hover:text-[#111827] dark:hover:text-[#F1F2F6]
+            hover:bg-[#F3F4F6] dark:hover:bg-[#2C2E3A] transition-colors"
         >
-          {theme === "dark"
-            ? <Sun size={18} weight="regular" />
-            : <Moon size={18} weight="regular" />}
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
         </button>
 
         {/* Settings */}
         <button
           onClick={() => navigate("/settings")}
           title="Settings"
-          className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors
+          className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors
             ${pathname === "/settings"
-              ? "bg-[#6c63ff]/10 text-[#6c63ff]"
-              : "text-[#868da3] dark:text-[#737a95] hover:text-[#232735] dark:hover:text-[#e4e6f0] hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a]"
+              ? "bg-[#F3EEF3] dark:bg-[#3D2B3A] text-[#714B67] dark:text-[#C4A0BA]"
+              : "text-[#6B7280] dark:text-[#6B7280] hover:text-[#111827] dark:hover:text-[#F1F2F6] hover:bg-[#F3F4F6] dark:hover:bg-[#2C2E3A]"
             }`}
         >
-          <GearSix size={18} weight={pathname === "/settings" ? "fill" : "regular"} />
+          <GearSix size={16} weight={pathname === "/settings" ? "fill" : "regular"} />
         </button>
 
         {/* Divider */}
-        <div className="w-px h-5 bg-[#eaecf3] dark:bg-[#252838] mx-1" />
+        <div className="w-px h-4 bg-[#E5E7EB] dark:bg-[#363847] mx-1.5" />
 
         {/* User avatar + dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((v) => !v)}
-            className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-lg
-              hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a] transition-colors"
+            className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full
+              hover:bg-[#F3F4F6] dark:hover:bg-[#2C2E3A] transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6c63ff] to-[#8b83ff]
-              flex items-center justify-center text-sm font-bold text-white flex-shrink-0
-              shadow-[0_3px_8px_-2px_rgba(108,99,255,0.45)]">
+            <div className="w-7 h-7 rounded-full bg-[#F3EEF3] dark:bg-[#3D2B3A]
+              flex items-center justify-center text-xs font-bold text-[#714B67] dark:text-[#C4A0BA] flex-shrink-0">
               {avatarLetter}
             </div>
-            <span className="hidden md:block text-sm font-medium text-[#4b5169] dark:text-[#b0b6cc] max-w-[6rem] truncate">
+            <span className="hidden md:block text-sm font-medium text-[#374151] dark:text-[#9CA3AF] max-w-[6rem] truncate">
               {user?.username}
             </span>
             <CaretDown
-              size={12}
+              size={11}
               weight="bold"
-              className={`hidden md:block text-[#aeb4c6] dark:text-[#525872] transition-transform duration-150 ${dropdownOpen ? "rotate-180" : ""}`}
+              className={`hidden md:block text-[#9CA3AF] dark:text-[#6B7280] transition-transform duration-150 ${dropdownOpen ? "rotate-180" : ""}`}
             />
           </button>
 
           {dropdownOpen && (
             <div className="absolute right-0 top-[calc(100%+6px)] w-48
-              bg-white dark:bg-[#1c1f2e] border border-[#eaecf3] dark:border-[#252838]
-              rounded-xl shadow-[0_12px_32px_-8px_rgba(30,34,52,0.18)] z-50 py-1.5 overflow-hidden animate-in">
-              <div className="px-4 py-3 border-b border-[#f0f1f6] dark:border-[#252838] mb-1">
-                <p className="text-sm font-semibold text-[#232735] dark:text-[#e4e6f0] truncate">{user?.username}</p>
-                <p className="text-xs text-[#aeb4c6] dark:text-[#525872] mt-0.5">Signed in</p>
+              bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847]
+              rounded-xl shadow-[0_12px_32px_-8px_rgba(17,24,39,0.15)] z-50 py-1.5 overflow-hidden animate-in">
+              <div className="px-4 py-3 border-b border-[#E5E7EB] dark:border-[#363847] mb-1">
+                <p className="text-sm font-semibold text-[#111827] dark:text-[#F1F2F6] truncate">{user?.username}</p>
+                <p className="text-xs text-[#9CA3AF] dark:text-[#6B7280] mt-0.5">Signed in</p>
               </div>
               <button
                 onClick={handleLogout}
                 className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm
-                  text-[#868da3] dark:text-[#737a95] hover:text-red-500 hover:bg-red-500/6 transition-all"
+                  text-[#6B7280] dark:text-[#6B7280] hover:text-red-500 hover:bg-red-500/6 transition-all"
               >
-                <SignOut size={15} />
+                <SignOut size={14} />
                 Sign out
               </button>
             </div>

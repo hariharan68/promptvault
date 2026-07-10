@@ -9,9 +9,9 @@ export default function Input({
   list,
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       {label && (
-        <label className="text-xs font-semibold text-[#868da3] dark:text-[#737a95] uppercase tracking-widest">
+        <label className="text-[11px] font-semibold text-[#6B7280] dark:text-[#6B7280] uppercase tracking-[0.12em]">
           {label}
         </label>
       )}
@@ -22,13 +22,12 @@ export default function Input({
         placeholder={placeholder}
         required={required}
         list={list}
-        className={`w-full bg-[#f7f8fc] dark:bg-[#0f1118] border border-[#e0e3ec] dark:border-[#2d3047]
-          rounded-xl text-[#232735] dark:text-[#e4e6f0]
-          placeholder:text-[#aeb4c6] dark:placeholder:text-[#525872]
+        className={`w-full bg-[#F3F4F6] dark:bg-[#2C2E3A] border border-[#E5E7EB] dark:border-[#363847]
+          rounded-xl text-[#111827] dark:text-[#F1F2F6]
+          placeholder:text-[#9CA3AF] dark:placeholder:text-[#6B7280]
           px-4 py-3 text-sm outline-none
-          focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12
-          focus:bg-white dark:focus:bg-[#161923]
-          hover:border-[#c9cdda] dark:hover:border-[#3a3e58] transition-all duration-200
+          focus:border-[#714B67] focus:ring-2 focus:ring-[#714B67]/15 focus:bg-white dark:focus:bg-[#252733]
+          hover:border-[#9CA3AF] dark:hover:border-[#4A4D60] transition-all duration-200
           ${className}`}
       />
     </div>

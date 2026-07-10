@@ -10,8 +10,7 @@ import Input from "../components/common/Input.jsx";
 
 function SkeletonCard() {
   return (
-    <div className="bg-white dark:bg-[#161923] border border-[#eaecf3] dark:border-[#252838]
-      rounded-xl p-5 flex flex-col gap-4 shadow-[0_1px_3px_rgba(30,34,52,0.04)]">
+    <div className="bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847] rounded-xl p-5 flex flex-col gap-4">
       <div className="flex items-start justify-between">
         <div className="w-10 h-10 skeleton rounded-xl" />
         <div className="w-6 h-6 skeleton rounded-md" />
@@ -30,9 +29,7 @@ function GroupCard({ group, promptCount, onOpen, onRename, onDelete }) {
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -41,52 +38,44 @@ function GroupCard({ group, promptCount, onOpen, onRename, onDelete }) {
   return (
     <div
       onClick={onOpen}
-      className="group/card relative bg-white dark:bg-[#161923]
-        border border-[#eaecf3] dark:border-[#252838] rounded-xl p-5 cursor-pointer
-        shadow-[0_1px_3px_rgba(30,34,52,0.04)]
-        hover:border-[#6c63ff]/30 hover:shadow-[0_12px_28px_-10px_rgba(108,99,255,0.22)]
-        transition-all duration-300 overflow-hidden"
+      className="group/card relative bg-white dark:bg-[#252733]
+        border border-[#E5E7EB] dark:border-[#363847] rounded-xl p-5 cursor-pointer
+        hover:border-[#714B67] hover:shadow-[0_4px_16px_-4px_rgba(113,75,103,0.15)] transition-all duration-200 overflow-hidden"
     >
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r
-        from-transparent via-[#6c63ff]/0 to-transparent
-        group-hover/card:via-[#6c63ff]/40 transition-all duration-500" />
-
       <div className="flex items-start justify-between mb-4">
-        <div className="w-10 h-10 rounded-xl bg-[#6c63ff]/10 dark:bg-[#6c63ff]/15
-          flex items-center justify-center text-[#6c63ff]">
+        <div className="w-10 h-10 rounded-xl bg-[#F3EEF3] dark:bg-[#3D2B3A]
+          flex items-center justify-center text-[#714B67] dark:text-[#C4A0BA]">
           <FolderSimple size={20} weight="fill" />
         </div>
 
-        {/* 3-dot menu */}
         <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
-            className="w-7 h-7 flex items-center justify-center rounded-md
+            className="w-7 h-7 flex items-center justify-center rounded-full
               opacity-0 group-hover/card:opacity-100 transition-opacity
-              text-[#aeb4c6] dark:text-[#525872]
-              hover:text-[#4b5169] dark:hover:text-[#b0b6cc]
-              hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a]"
+              text-[#9CA3AF] dark:text-[#6B7280]
+              hover:text-[#374151] dark:hover:text-[#9CA3AF]
+              hover:bg-[#F3F4F6] dark:hover:bg-[#2C2E3A]"
           >
             <DotsThree size={16} weight="bold" />
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-8 w-36 z-10
-              bg-white dark:bg-[#1c1f2e] border border-[#eaecf3] dark:border-[#252838]
-              rounded-xl shadow-[0_12px_32px_-8px_rgba(30,34,52,0.18)] py-1 overflow-hidden animate-in">
+            <div className="absolute right-0 top-8 w-32 z-10
+              bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847]
+              rounded-xl shadow-[0_8px_24px_-8px_rgba(17,24,39,0.15)] py-1 overflow-hidden animate-in">
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onRename(); }}
                 className="w-full text-left flex items-center gap-2 px-3.5 py-2.5 text-sm
-                  text-[#4b5169] dark:text-[#b0b6cc]
-                  hover:bg-[#f4f6fb] dark:hover:bg-[#252838]
-                  hover:text-[#232735] dark:hover:text-[#e4e6f0] transition-colors"
+                  text-[#374151] dark:text-[#9CA3AF]
+                  hover:bg-[#F3F4F6] dark:hover:bg-[#2C2E3A]
+                  hover:text-[#111827] dark:hover:text-[#F1F2F6] transition-colors"
               >
                 <PencilSimple size={13} /> Rename
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(); }}
-                className="w-full text-left flex items-center gap-2 px-3.5 py-2.5 text-sm
-                  text-[#ef4444] hover:bg-red-500/8 transition-colors"
+                className="w-full text-left flex items-center gap-2 px-3.5 py-2.5 text-sm text-red-500 hover:bg-red-500/8 transition-colors"
               >
                 <Trash size={13} /> Delete
               </button>
@@ -96,15 +85,13 @@ function GroupCard({ group, promptCount, onOpen, onRename, onDelete }) {
       </div>
 
       <div>
-        <h3 className="font-semibold text-[#232735] dark:text-[#e4e6f0] text-sm leading-snug truncate mb-1">
+        <h3 className="font-semibold text-[#111827] dark:text-[#F1F2F6] text-sm leading-snug truncate mb-1">
           {group.name}
         </h3>
-        <p className="text-xs text-[#868da3] dark:text-[#737a95]">
-          {promptCount} prompt{promptCount !== 1 ? "s" : ""}
-        </p>
+        <p className="text-xs text-[#6B7280]">{promptCount} prompt{promptCount !== 1 ? "s" : ""}</p>
       </div>
 
-      <div className="mt-4 flex items-center gap-1 text-xs text-[#6c63ff] font-medium
+      <div className="mt-4 flex items-center gap-1 text-xs text-[#714B67] dark:text-[#C4A0BA] font-medium
         opacity-0 group-hover/card:opacity-100 transition-opacity">
         View prompts <ArrowRight size={11} weight="bold" />
       </div>
@@ -115,22 +102,20 @@ function GroupCard({ group, promptCount, onOpen, onRename, onDelete }) {
 function EmptyState({ onCreate }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-white dark:bg-[#161923]
-        border border-[#eaecf3] dark:border-[#252838]
-        flex items-center justify-center mb-4 text-[#6c63ff]
-        shadow-[0_8px_24px_-10px_rgba(108,99,255,0.3)]">
+      <div className="w-16 h-16 rounded-2xl bg-white dark:bg-[#252733]
+        border border-[#E5E7EB] dark:border-[#363847]
+        flex items-center justify-center mb-4 text-[#714B67]">
         <FolderSimple size={28} weight="regular" />
       </div>
-      <p className="text-[#232735] dark:text-[#e4e6f0] font-semibold text-sm">No groups yet</p>
-      <p className="text-[#868da3] dark:text-[#737a95] text-xs mt-1.5 max-w-52 leading-relaxed">
+      <p className="text-[#111827] dark:text-[#F1F2F6] font-semibold text-sm">No groups yet</p>
+      <p className="text-[#6B7280] text-xs mt-1.5 max-w-52 leading-relaxed">
         Create a group to organize your prompts by topic or project
       </p>
       <button
         onClick={onCreate}
-        className="mt-5 flex items-center gap-2 bg-gradient-to-r from-[#6c63ff] to-[#8b83ff]
-          hover:from-[#5a52e0] hover:to-[#7a71f5] text-white text-sm font-semibold
-          px-5 py-2.5 rounded-xl transition-all duration-200
-          shadow-[0_8px_20px_-6px_rgba(108,99,255,0.5)]"
+        className="mt-5 inline-flex items-center gap-2 bg-[#714B67] hover:bg-[#5A3A52]
+          text-white text-sm font-medium
+          px-5 py-2.5 rounded-full transition-all duration-200"
       >
         <Plus size={14} weight="bold" /> New Group
       </button>
@@ -159,9 +144,7 @@ export default function GroupsPage() {
       const [groupsRes, promptsRes] = await Promise.all([getGroups(), getPrompts()]);
       setGroups(groupsRes.data);
       const counts = {};
-      promptsRes.data.forEach((p) => {
-        if (p.group_id) counts[p.group_id] = (counts[p.group_id] || 0) + 1;
-      });
+      promptsRes.data.forEach((p) => { if (p.group_id) counts[p.group_id] = (counts[p.group_id] || 0) + 1; });
       setPromptCounts(counts);
     } catch {}
     finally { setLoading(false); }
@@ -173,15 +156,11 @@ export default function GroupsPage() {
     setCreating(true);
     try {
       await createGroup({ name: newName.trim() });
-      setNewName("");
-      setShowCreate(false);
-      toast.success("Group created");
-      loadData();
+      setNewName(""); setShowCreate(false);
+      toast.success("Group created"); loadData();
     } catch (err) {
       toast.error(err.response?.data?.detail ?? "Failed to create group");
-    } finally {
-      setCreating(false);
-    }
+    } finally { setCreating(false); }
   }
 
   async function handleRename(e) {
@@ -189,32 +168,25 @@ export default function GroupsPage() {
     if (!editName.trim() || editName.trim() === editingGroup.name) { setEditingGroup(null); return; }
     try {
       await updateGroup(editingGroup.id, { name: editName.trim() });
-      toast.success("Group renamed");
-      setEditingGroup(null);
-      loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.detail ?? "Failed to rename");
-    }
+      toast.success("Group renamed"); setEditingGroup(null); loadData();
+    } catch (err) { toast.error(err.response?.data?.detail ?? "Failed to rename"); }
   }
 
   async function handleDelete(group) {
     if (!window.confirm(`Delete "${group.name}"? Prompts in this group will become ungrouped.`)) return;
     try {
-      await deleteGroup(group.id);
-      toast.success("Group deleted");
-      loadData();
-    } catch (err) {
-      toast.error(err.response?.data?.detail ?? "Failed to delete");
-    }
+      await deleteGroup(group.id); toast.success("Group deleted"); loadData();
+    } catch (err) { toast.error(err.response?.data?.detail ?? "Failed to delete"); }
   }
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-8">
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#232735] dark:text-[#e4e6f0]">Groups</h1>
-          <p className="text-sm text-[#868da3] dark:text-[#737a95] mt-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#714B67] dark:text-[#C4A0BA] mb-1">Organize</p>
+          <h1 className="font-serif text-3xl text-[#111827] dark:text-[#F1F2F6]">Groups</h1>
+          <p className="text-sm text-[#6B7280] mt-1">
             {loading ? "Loading..." : `${groups.length} group${groups.length !== 1 ? "s" : ""}`}
           </p>
         </div>
@@ -233,9 +205,7 @@ export default function GroupsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {groups.map((g) => (
             <GroupCard
-              key={g.id}
-              group={g}
-              promptCount={promptCounts[g.id] ?? 0}
+              key={g.id} group={g} promptCount={promptCounts[g.id] ?? 0}
               onOpen={() => navigate(`/prompts?group_id=${g.id}`)}
               onRename={() => { setEditingGroup(g); setEditName(g.name); }}
               onDelete={() => handleDelete(g)}
@@ -247,20 +217,10 @@ export default function GroupsPage() {
       {showCreate && (
         <Modal title="New Group" onClose={() => { setShowCreate(false); setNewName(""); }} size="sm">
           <form onSubmit={handleCreate} className="flex flex-col gap-4">
-            <Input
-              label="Group name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. Writing, Coding, Research"
-              required
-            />
+            <Input label="Group name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Writing, Coding, Research" required />
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => { setShowCreate(false); setNewName(""); }} type="button">
-                Cancel
-              </Button>
-              <Button type="submit" disabled={creating}>
-                {creating ? "Creating..." : "Create Group"}
-              </Button>
+              <Button variant="ghost" onClick={() => { setShowCreate(false); setNewName(""); }} type="button">Cancel</Button>
+              <Button type="submit" disabled={creating}>{creating ? "Creating..." : "Create Group"}</Button>
             </div>
           </form>
         </Modal>
@@ -269,12 +229,7 @@ export default function GroupsPage() {
       {editingGroup && (
         <Modal title="Rename Group" onClose={() => setEditingGroup(null)} size="sm">
           <form onSubmit={handleRename} className="flex flex-col gap-4">
-            <Input
-              label="Group name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              required
-            />
+            <Input label="Group name" value={editName} onChange={(e) => setEditName(e.target.value)} required />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setEditingGroup(null)} type="button">Cancel</Button>
               <Button type="submit">Rename</Button>
