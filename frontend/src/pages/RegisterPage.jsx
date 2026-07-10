@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Archive, FolderSimple, Star, Warning } from "@phosphor-icons/react";
 import { register, login, getMe } from "../api/authApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Input from "../components/common/Input.jsx";
@@ -14,9 +15,9 @@ function BrandLogo() {
 }
 
 const steps = [
-  { icon: "◈", label: "Build your prompt library" },
-  { icon: "⊞", label: "Group by project or use case" },
-  { icon: "★", label: "Favorite your best prompts" },
+  { Icon: Archive, label: "Build your prompt library" },
+  { Icon: FolderSimple, label: "Group by project or use case" },
+  { Icon: Star, label: "Favorite your best prompts" },
 ];
 
 export default function RegisterPage() {
@@ -51,14 +52,13 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-[#f4f6fb] flex">
 
-      {/* ── Left panel (desktop) ── */}
+      {/* Left panel (desktop) */}
       <div className="hidden lg:flex w-[46%] xl:w-[42%] flex-col justify-between p-12 relative overflow-hidden
         bg-gradient-to-br from-[#6c63ff] to-[#8b83ff]">
 
         <div className="absolute bottom-1/3 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/4 left-0 w-56 h-56 bg-white/8 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Brand */}
         <div className="flex items-center gap-3 relative z-10">
           <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
             <span className="text-white font-black text-sm">V</span>
@@ -66,13 +66,7 @@ export default function RegisterPage() {
           <span className="text-white font-bold text-lg tracking-tight">PromptVault</span>
         </div>
 
-        {/* Middle */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 border border-white/25 rounded-full mb-6">
-            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            <span className="text-white text-xs font-medium">Free to get started</span>
-          </div>
-
           <h2 className="text-4xl font-bold leading-tight mb-4 text-white">
             Start building your
             <br />
@@ -85,28 +79,30 @@ export default function RegisterPage() {
           </p>
 
           <div className="flex flex-col gap-4">
-            {steps.map((s) => (
-              <div key={s.label} className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/25
-                  flex items-center justify-center text-white flex-shrink-0">
-                  {s.icon}
+            {steps.map((s) => {
+              const { Icon } = s;
+              return (
+                <div key={s.label} className="flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-xl bg-white/20 border border-white/25
+                    flex items-center justify-center text-white flex-shrink-0">
+                    <Icon size={18} weight="regular" />
+                  </div>
+                  <span className="text-white/85 text-sm">{s.label}</span>
                 </div>
-                <span className="text-white/85 text-sm">{s.label}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        <div className="relative z-10 text-white/60 text-xs font-medium">
-          PromptVault v1.0 · Personal Edition
+        <div className="relative z-10 text-white/50 text-xs">
+          promptvault.app
         </div>
       </div>
 
-      {/* ── Right form panel ── */}
+      {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-16">
         <div className="w-full max-w-[360px]">
 
-          {/* Mobile logo */}
           <div className="flex lg:hidden items-center justify-center gap-2.5 mb-10">
             <BrandLogo />
             <span className="text-[#232735] font-bold text-lg">PromptVault</span>
@@ -147,7 +143,7 @@ export default function RegisterPage() {
               {error && (
                 <div className="flex items-center gap-2.5 text-sm text-red-500
                   bg-red-500/6 border border-red-500/20 rounded-xl px-3.5 py-2.5">
-                  <span className="flex-shrink-0">⚠</span>
+                  <Warning size={15} weight="fill" className="flex-shrink-0" />
                   {error}
                 </div>
               )}

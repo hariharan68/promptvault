@@ -1,8 +1,9 @@
+import { Archive } from "@phosphor-icons/react";
 import PromptCard from "./PromptCard.jsx";
 
 function SkeletonCard() {
   return (
-    <div className="bg-white border border-[#eaecf3] rounded-xl p-4 flex flex-col gap-3 shadow-[0_1px_3px_rgba(30,34,52,0.04)]">
+    <div className="bg-white dark:bg-[#161923] border border-[#eaecf3] dark:border-[#252838] rounded-xl p-4 flex flex-col gap-3 shadow-[0_1px_3px_rgba(30,34,52,0.04)]">
       <div className="flex justify-between items-start">
         <div className="flex flex-col gap-1.5 flex-1">
           <div className="h-3.5 skeleton rounded-md w-3/5" />
@@ -15,7 +16,7 @@ function SkeletonCard() {
         <div className="h-5 skeleton rounded-full w-16" />
         <div className="h-5 skeleton rounded-full w-14" />
       </div>
-      <div className="flex gap-1.5 pt-2 border-t border-[#f0f1f6]">
+      <div className="flex gap-1.5 pt-2 border-t border-[#f0f1f6] dark:border-[#1d2030]">
         <div className="h-7 skeleton rounded-lg w-16" />
         <div className="h-7 skeleton rounded-lg w-12" />
         <div className="h-7 skeleton rounded-lg w-20" />
@@ -36,13 +37,14 @@ export default function PromptList({ prompts, loading, onEdit, onDelete, onDupli
   if (prompts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-white border border-[#eaecf3]
-          flex items-center justify-center text-2xl mb-4 text-[#6c63ff]
+        <div className="w-16 h-16 rounded-2xl bg-white dark:bg-[#161923]
+          border border-[#eaecf3] dark:border-[#252838]
+          flex items-center justify-center mb-4 text-[#6c63ff]
           shadow-[0_8px_24px_-10px_rgba(108,99,255,0.3)]">
-          ◈
+          <Archive size={28} weight="regular" />
         </div>
-        <p className="text-[#232735] font-semibold text-sm">No prompts found</p>
-        <p className="text-[#868da3] text-xs mt-1.5 max-w-52 leading-relaxed">
+        <p className="text-[#232735] dark:text-[#e4e6f0] font-semibold text-sm">No prompts found</p>
+        <p className="text-[#868da3] dark:text-[#737a95] text-xs mt-1.5 max-w-52 leading-relaxed">
           Try adjusting your filters or create your first prompt
         </p>
       </div>

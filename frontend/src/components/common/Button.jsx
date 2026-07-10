@@ -6,12 +6,14 @@ const variants = {
     hover:shadow-[0_10px_24px_-6px_rgba(108,99,255,0.6)]
     active:scale-[0.98]`,
 
-  secondary: `bg-white hover:bg-[#f4f6fb] text-[#232735] font-medium
-    border border-[#e0e3ec] hover:border-[#6c63ff]/40
+  secondary: `bg-white dark:bg-[#161923] hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a]
+    text-[#232735] dark:text-[#e4e6f0] font-medium
+    border border-[#e0e3ec] dark:border-[#2d3047] hover:border-[#6c63ff]/40
     active:scale-[0.98]`,
 
-  ghost: `bg-white hover:bg-[#f4f6fb] text-[#5b6178] hover:text-[#232735] font-medium
-    border border-[#e0e3ec] hover:border-[#c9cdda]
+  ghost: `bg-white dark:bg-[#161923] hover:bg-[#f4f6fb] dark:hover:bg-[#1a1d2a]
+    text-[#5b6178] dark:text-[#959baf] hover:text-[#232735] dark:hover:text-[#e4e6f0] font-medium
+    border border-[#e0e3ec] dark:border-[#2d3047] hover:border-[#c9cdda] dark:hover:border-[#3a3e58]
     active:scale-[0.98]`,
 
   danger: `bg-[#ef4444]/8 hover:bg-[#ef4444]/14 text-[#ef4444] font-medium
@@ -20,9 +22,9 @@ const variants = {
 };
 
 const sizes = {
-  sm: "px-3 py-1.5 text-xs rounded-lg",
-  md: "px-4 py-2 text-sm rounded-lg",
-  lg: "px-5 py-2.5 text-sm rounded-xl",
+  sm: "px-3.5 py-2 text-xs rounded-lg",
+  md: "px-4 py-2.5 text-sm rounded-lg",
+  lg: "px-5 py-3 text-sm rounded-xl",
 };
 
 export default function Button({

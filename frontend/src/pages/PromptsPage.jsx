@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Plus } from "@phosphor-icons/react";
 import {
   getPrompts, createPrompt, updatePrompt, deletePrompt,
   duplicatePrompt, copyPrompt, favoritePrompt, unfavoritePrompt,
@@ -15,35 +16,40 @@ export default function PromptsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
 
-  const [prompts, setPrompts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
+  // URL is the single source of truth — derived on every render, never stored in state
+  const filters = {
     q: searchParams.get("q") ?? "",
     group_id: searchParams.get("group_id") ?? "",
     tag: searchParams.get("tag") ?? "",
     is_favorite: searchParams.get("is_favorite") ?? "",
-  });
+  };
 
-  const [showCreate, setShowCreate] = useState(false);
+  const [prompts, setPrompts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(() => searchParams.get("new") === "1");
   const [editTarget, setEditTarget] = useState(null);
 
-  useEffect(() => {
+  function handleFiltersChange(newFilters) {
     const params = {};
-    if (filters.q) params.q = filters.q;
-    if (filters.group_id) params.group_id = filters.group_id;
-    if (filters.tag) params.tag = filters.tag;
-    if (filters.is_favorite) params.is_favorite = filters.is_favorite;
+    if (newFilters.q) params.q = newFilters.q;
+    if (newFilters.group_id) params.group_id = newFilters.group_id;
+    if (newFilters.tag) params.tag = newFilters.tag;
+    if (newFilters.is_favorite) params.is_favorite = newFilters.is_favorite;
     setSearchParams(params, { replace: true });
-  }, [filters, setSearchParams]);
+  }
 
   const fetchPrompts = useCallback(async () => {
     setLoading(true);
     try {
       const params = {};
-      if (filters.q) params.q = filters.q;
-      if (filters.group_id) params.group_id = filters.group_id;
-      if (filters.tag) params.tag = filters.tag;
-      if (filters.is_favorite !== "") params.is_favorite = filters.is_favorite;
+      const q = searchParams.get("q");
+      const group_id = searchParams.get("group_id");
+      const tag = searchParams.get("tag");
+      const is_favorite = searchParams.get("is_favorite");
+      if (q) params.q = q;
+      if (group_id) params.group_id = group_id;
+      if (tag) params.tag = tag;
+      if (is_favorite) params.is_favorite = is_favorite;
       const res = await getPrompts(params);
       setPrompts(res.data);
     } catch {
@@ -51,7 +57,7 @@ export default function PromptsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [searchParams]);
 
   useEffect(() => { fetchPrompts(); }, [fetchPrompts]);
 
@@ -108,7 +114,7 @@ export default function PromptsPage() {
         toast.success("Removed from favorites");
       } else {
         await favoritePrompt(prompt.id);
-        toast.success("Added to favorites ★");
+        toast.success("Added to favorites");
       }
       fetchPrompts();
     } catch {
@@ -117,7 +123,7 @@ export default function PromptsPage() {
   }
 
   function handleTagClick(tagName) {
-    setFilters((prev) => ({ ...prev, tag: tagName }));
+    handleFiltersChange({ ...filters, tag: tagName });
   }
 
   return (
@@ -126,8 +132,8 @@ export default function PromptsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[#232735]">Prompts</h1>
-          <p className="text-xs text-[#868da3] mt-0.5">
+          <h1 className="text-xl font-bold text-[#232735] dark:text-[#e4e6f0]">Prompts</h1>
+          <p className="text-xs text-[#868da3] dark:text-[#737a95] mt-0.5">
             {!loading
               ? `${prompts.length} prompt${prompts.length !== 1 ? "s" : ""}${
                   filters.q || filters.tag || filters.group_id || filters.is_favorite
@@ -138,12 +144,12 @@ export default function PromptsPage() {
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)} size="md">
-          + New Prompt
+          <Plus size={14} weight="bold" /> New Prompt
         </Button>
       </div>
 
       {/* Filters */}
-      <PromptFilters filters={filters} onChange={setFilters} />
+      <PromptFilters filters={filters} onChange={handleFiltersChange} />
 
       {/* List */}
       <PromptList

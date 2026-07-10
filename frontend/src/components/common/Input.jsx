@@ -9,9 +9,9 @@ export default function Input({
   list,
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       {label && (
-        <label className="text-xs font-semibold text-[#868da3] uppercase tracking-widest">
+        <label className="text-xs font-semibold text-[#868da3] dark:text-[#737a95] uppercase tracking-widest">
           {label}
         </label>
       )}
@@ -22,10 +22,13 @@ export default function Input({
         placeholder={placeholder}
         required={required}
         list={list}
-        className={`w-full bg-[#f7f8fc] border border-[#e0e3ec] rounded-xl text-[#232735]
-          placeholder:text-[#aeb4c6] px-3.5 py-2.5 text-sm outline-none
-          focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12 focus:bg-white
-          hover:border-[#c9cdda] transition-all duration-200
+        className={`w-full bg-[#f7f8fc] dark:bg-[#0f1118] border border-[#e0e3ec] dark:border-[#2d3047]
+          rounded-xl text-[#232735] dark:text-[#e4e6f0]
+          placeholder:text-[#aeb4c6] dark:placeholder:text-[#525872]
+          px-4 py-3 text-sm outline-none
+          focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12
+          focus:bg-white dark:focus:bg-[#161923]
+          hover:border-[#c9cdda] dark:hover:border-[#3a3e58] transition-all duration-200
           ${className}`}
       />
     </div>

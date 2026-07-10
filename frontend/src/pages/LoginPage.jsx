@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Check, Warning } from "@phosphor-icons/react";
 import { login, getMe } from "../api/authApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Input from "../components/common/Input.jsx";
 import Button from "../components/common/Button.jsx";
 
 const features = [
-  "Save & search prompts across all your AI tools",
+  "Save and search prompts across all your AI tools",
   "Organize by groups, tags, and favorites",
   "One-click copy with usage tracking",
   "URL-shareable filtered views",
@@ -52,15 +53,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#f4f6fb] flex">
 
-      {/* ── Left brand panel (desktop only) ── */}
+      {/* Left brand panel (desktop only) */}
       <div className="hidden lg:flex w-[46%] xl:w-[42%] flex-col justify-between p-12 relative overflow-hidden
         bg-gradient-to-br from-[#6c63ff] to-[#8b83ff]">
 
-        {/* Decorative glows */}
         <div className="absolute top-1/3 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 left-0 w-64 h-64 bg-white/8 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Brand */}
         <div className="flex items-center gap-3 relative z-10">
           <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
             <span className="text-white font-black text-sm">V</span>
@@ -68,13 +67,7 @@ export default function LoginPage() {
           <span className="text-white font-bold text-lg tracking-tight">PromptVault</span>
         </div>
 
-        {/* Hero copy */}
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 border border-white/25 rounded-full mb-6">
-            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            <span className="text-white text-xs font-medium">Personal AI Prompt Manager</span>
-          </div>
-
           <h2 className="text-4xl font-bold leading-tight mb-4 text-white">
             Your AI prompts,
             <br />
@@ -90,7 +83,7 @@ export default function LoginPage() {
             {features.map((f) => (
               <div key={f} className="flex items-center gap-3">
                 <div className="w-5 h-5 rounded-full bg-white/20 border border-white/25 flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-[10px] font-bold">✓</span>
+                  <Check size={10} weight="bold" className="text-white" />
                 </div>
                 <span className="text-white/85 text-sm">{f}</span>
               </div>
@@ -98,16 +91,15 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 text-white/60 text-xs font-medium">
-          PromptVault v1.0 · Personal Edition
+        <div className="relative z-10 text-white/50 text-xs">
+          promptvault.app
         </div>
       </div>
 
-      {/* ── Right form panel ── */}
+      {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-16">
         <div className="w-full max-w-[360px]">
 
-          {/* Mobile logo */}
           <div className="flex lg:hidden items-center justify-center gap-2.5 mb-10">
             <BrandLogo size="sm" />
             <span className="text-[#232735] font-bold text-lg">PromptVault</span>
@@ -141,7 +133,7 @@ export default function LoginPage() {
               {error && (
                 <div className="flex items-center gap-2.5 text-sm text-red-500
                   bg-red-500/6 border border-red-500/20 rounded-xl px-3.5 py-2.5">
-                  <span className="text-red-500 flex-shrink-0">⚠</span>
+                  <Warning size={15} weight="fill" className="flex-shrink-0 text-red-500" />
                   {error}
                 </div>
               )}

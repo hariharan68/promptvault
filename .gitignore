@@ -43,6 +43,7 @@ dmypy.json
 DESIGN.MD
 skills-lock.json
 .claude
+.agents
 
 
 # ── Node / Frontend ───────────────────────────────────────────────────────────

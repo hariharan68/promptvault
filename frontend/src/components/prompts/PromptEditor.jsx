@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Warning } from "@phosphor-icons/react";
 import { getGroups } from "../../api/groupApi.js";
 import Button from "../common/Button.jsx";
 import Input from "../common/Input.jsx";
@@ -69,12 +70,11 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
         label="Description"
         value={form.description}
         onChange={(e) => set("description", e.target.value)}
-        placeholder="Optional — what does this prompt do?"
+        placeholder="Optional - what does this prompt do?"
       />
 
-      {/* Prompt content */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#868da3]">
+        <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#868da3] dark:text-[#737a95]">
           Prompt Content
         </label>
         <textarea
@@ -83,23 +83,30 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
           placeholder="Write your prompt here..."
           required
           rows={8}
-          className="w-full bg-[#f7f8fc] border border-[#e0e3ec] rounded-xl text-[#232735]
-            placeholder:text-[#aeb4c6] px-4 py-3.5 text-sm outline-none resize-y
-            focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12 focus:bg-white
-            hover:border-[#c9cdda] transition-all duration-200 font-mono leading-relaxed"
+          className="w-full bg-[#f7f8fc] dark:bg-[#0f1118] border border-[#e0e3ec] dark:border-[#2d3047]
+            rounded-xl text-[#232735] dark:text-[#e4e6f0]
+            placeholder:text-[#aeb4c6] dark:placeholder:text-[#525872]
+            px-4 py-3.5 text-sm outline-none resize-y
+            focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12
+            focus:bg-white dark:focus:bg-[#161923]
+            hover:border-[#c9cdda] dark:hover:border-[#3a3e58]
+            transition-all duration-200 font-mono leading-relaxed"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* Group */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#868da3]">Group</label>
+          <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#868da3] dark:text-[#737a95]">Group</label>
           <select
             value={form.group_id}
             onChange={(e) => set("group_id", e.target.value)}
-            className="w-full bg-[#f7f8fc] border border-[#e0e3ec] rounded-xl text-sm text-[#232735]
-              px-3.5 py-2.5 outline-none focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12 focus:bg-white
-              hover:border-[#c9cdda] transition-all duration-200 cursor-pointer"
+            className="w-full bg-[#f7f8fc] dark:bg-[#0f1118] border border-[#e0e3ec] dark:border-[#2d3047]
+              rounded-xl text-sm text-[#232735] dark:text-[#e4e6f0]
+              px-3.5 py-2.5 outline-none
+              focus:border-[#6c63ff]/70 focus:ring-2 focus:ring-[#6c63ff]/12
+              focus:bg-white dark:focus:bg-[#161923]
+              hover:border-[#c9cdda] dark:hover:border-[#3a3e58]
+              transition-all duration-200 cursor-pointer"
           >
             <option value="">No group</option>
             {groups.map((g) => (
@@ -108,7 +115,6 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
           </select>
         </div>
 
-        {/* Tags */}
         <Input
           label="Tags (comma-separated)"
           value={form.tag_names}
@@ -120,7 +126,7 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
       {error && (
         <div className="flex items-center gap-2.5 text-sm text-red-500
           bg-red-500/6 border border-red-500/20 rounded-xl px-3.5 py-2.5">
-          <span className="flex-shrink-0">⚠</span>
+          <Warning size={15} weight="fill" className="flex-shrink-0" />
           {error}
         </div>
       )}
