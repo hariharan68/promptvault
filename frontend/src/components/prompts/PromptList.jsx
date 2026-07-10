@@ -1,5 +1,7 @@
+import { motion } from "motion/react";
 import { Archive } from "@phosphor-icons/react";
 import PromptCard from "./PromptCard.jsx";
+import PromptRow from "./PromptRow.jsx";
 
 function SkeletonCard() {
   return (
@@ -25,8 +27,32 @@ function SkeletonCard() {
   );
 }
 
-export default function PromptList({ prompts, loading, onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick }) {
+function SkeletonRow() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-[#F3F4F6] dark:border-[#2C2E3A] last:border-b-0">
+      <div className="w-3.5 h-3.5 skeleton rounded-sm flex-shrink-0" />
+      <div className="flex-1 flex flex-col gap-1.5">
+        <div className="h-3.5 skeleton rounded-md w-2/5" />
+        <div className="h-3 skeleton rounded-md w-1/4" />
+      </div>
+      <div className="flex gap-1.5 hidden sm:flex">
+        <div className="h-5 skeleton rounded-full w-12" />
+        <div className="h-5 skeleton rounded-full w-14" />
+      </div>
+      <div className="h-3 skeleton rounded-md w-10 hidden sm:block" />
+    </div>
+  );
+}
+
+export default function PromptList({ prompts, loading, view = "grid", onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick }) {
   if (loading) {
+    if (view === "list") {
+      return (
+        <div className="bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847] rounded-xl overflow-hidden">
+          {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonRow key={i} />)}
+        </div>
+      );
+    }
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
@@ -50,11 +76,36 @@ export default function PromptList({ prompts, loading, onEdit, onDelete, onDupli
     );
   }
 
+  const sharedProps = { onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick };
+
+  if (view === "list") {
+    return (
+      <div className="bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847] rounded-xl overflow-hidden">
+        {prompts.map((p, i) => (
+          <motion.div
+            key={p.id}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.18, delay: Math.min(i, 8) * 0.03, ease: "easeOut" }}
+          >
+            <PromptRow prompt={p} {...sharedProps} />
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {prompts.map((p) => (
-        <PromptCard key={p.id} prompt={p} onEdit={onEdit} onDelete={onDelete}
-          onDuplicate={onDuplicate} onCopy={onCopy} onFavoriteToggle={onFavoriteToggle} onTagClick={onTagClick} />
+      {prompts.map((p, i) => (
+        <motion.div
+          key={p.id}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, delay: Math.min(i, 8) * 0.04, ease: "easeOut" }}
+        >
+          <PromptCard prompt={p} {...sharedProps} />
+        </motion.div>
       ))}
     </div>
   );

@@ -1,5 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Warning } from "@phosphor-icons/react";
+
+function DetectedVariables({ content }) {
+  const vars = useMemo(() => {
+    const matches = [...content.matchAll(/\{\{([^{}]+)\}\}/g)];
+    const seen = new Set();
+    return matches.map((m) => m[1].trim()).filter((v) => v && !seen.has(v) && seen.add(v));
+  }, [content]);
+
+  if (!vars.length) return null;
+  return (
+    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+      <span className="text-[10px] text-[#9CA3AF] font-semibold uppercase tracking-wide">Variables:</span>
+      {vars.map((v) => (
+        <span key={v}
+          className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-semibold
+            bg-[#F2A93E]/12 border border-[#F2A93E]/30 text-[#D4841A]">
+          {`{{${v}}}`}
+        </span>
+      ))}
+    </div>
+  );
+}
 import { getGroups } from "../../api/groupApi.js";
 import Button from "../common/Button.jsx";
 import Input from "../common/Input.jsx";
@@ -57,13 +79,18 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
       <Input label="Description" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Optional - what does this prompt do?" />
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7280] dark:text-[#6B7280]">
-          Prompt Content
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#6B7280] dark:text-[#6B7280]">
+            Prompt Content
+          </label>
+          <span className="text-[10px] text-[#9CA3AF] font-mono">
+            use <span className="text-[#D4841A]">{"{{variable}}"}</span> for fill-in placeholders
+          </span>
+        </div>
         <textarea
           value={form.prompt_content}
           onChange={(e) => set("prompt_content", e.target.value)}
-          placeholder="Write your prompt here..."
+          placeholder={"Write your prompt here...\n\ne.g. Write a {{tone}} email to {{recipient}} about {{topic}}"}
           required
           rows={8}
           className="w-full bg-[#F3F4F6] dark:bg-[#2C2E3A] border border-[#E5E7EB] dark:border-[#363847]
@@ -74,6 +101,7 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
             hover:border-[#9CA3AF] dark:hover:border-[#4A4D60]
             transition-all duration-200 font-mono leading-relaxed"
         />
+        <DetectedVariables content={form.prompt_content} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">

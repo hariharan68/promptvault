@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { List, GearSix, Sun, Moon, SignOut, CaretDown, Lock } from "@phosphor-icons/react";
+import { List, GearSix, Sun, Moon, SignOut, CaretDown, Lock, MagnifyingGlass } from "@phosphor-icons/react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useTheme } from "../../context/ThemeContext.jsx";
 
@@ -11,7 +11,7 @@ const PAGE_TITLES = {
   "/settings": "Settings",
 };
 
-export default function Navbar({ onMenuOpen }) {
+export default function Navbar({ onMenuOpen, onOpenPalette }) {
   const { user, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
@@ -64,6 +64,22 @@ export default function Navbar({ onMenuOpen }) {
       <p className="hidden md:block text-[13px] font-semibold uppercase tracking-[0.1em] text-[#9CA3AF] dark:text-[#6B7280]">
         {title}
       </p>
+
+      {/* Search trigger (desktop) */}
+      <button
+        onClick={onOpenPalette}
+        className="hidden md:flex items-center gap-2.5 px-3 py-1.5
+          bg-[#F3F4F6] dark:bg-[#2C2E3A] border border-[#E5E7EB] dark:border-[#363847]
+          rounded-full text-xs text-[#9CA3AF] hover:border-[#714B67]/40 hover:text-[#6B7280]
+          transition-all duration-200 cursor-pointer"
+      >
+        <MagnifyingGlass size={13} />
+        <span>Search…</span>
+        <kbd className="ml-1 text-[10px] font-mono bg-white dark:bg-[#252733]
+          border border-[#E5E7EB] dark:border-[#363847] rounded px-1 py-0.5 text-[#ADB5BD]">
+          ⌘K
+        </kbd>
+      </button>
 
       {/* Right side */}
       <div className="flex items-center gap-1">

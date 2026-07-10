@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "motion/react";
 import { SquaresFour, Archive, FolderSimple, GearSix, Lock, Plus, DotsThree, PencilSimple, Trash } from "@phosphor-icons/react";
 import { getGroups, createGroup, updateGroup, deleteGroup } from "../../api/groupApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -78,9 +79,18 @@ export default function GroupSidebar({ isOpen, onClose }) {
 
   return (
     <>
-      {isOpen && (
-        <div className="fixed inset-0 bg-[#111827]/30 backdrop-blur-[2px] z-20 md:hidden" onClick={onClose} />
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 bg-[#111827]/30 backdrop-blur-[2px] z-20 md:hidden"
+            onClick={onClose}
+          />
+        )}
+      </AnimatePresence>
 
       <aside className={`fixed top-0 left-0 h-full w-60 flex flex-col z-30
         bg-white dark:bg-[#1A1B22] border-r border-[#E5E7EB] dark:border-[#363847]

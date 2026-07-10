@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
 import { Archive, Star, FolderSimple, ArrowRight } from "@phosphor-icons/react";
 import { getPrompts } from "../api/promptApi.js";
 import { getGroups } from "../api/groupApi.js";
@@ -54,35 +55,50 @@ export default function DashboardPage() {
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-10">
 
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+      >
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#714B67] dark:text-[#C4A0BA] mb-1.5">Your vault</p>
         <h1 className="font-serif text-3xl text-[#111827] dark:text-[#F1F2F6] leading-tight">
           {greeting}. {user?.username ? `Here's your vault, ${user.username}.` : "Here's what's stored."}
         </h1>
-      </div>
+      </motion.div>
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {statCards.map((card) => {
+        {statCards.map((card, i) => {
           const { Icon } = card;
           return (
-            <Link key={card.key} to={card.to} className="group block">
-              <div className={`relative overflow-hidden bg-gradient-to-br ${card.gradient} ${card.shadow}
-                rounded-xl p-5 transition-all duration-300 cursor-pointer hover:-translate-y-0.5`}>
-                <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/15 rounded-full blur-2xl pointer-events-none" />
-                <div className="relative">
-                  <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/20 text-white mb-4">
-                    <Icon size={18} weight="regular" />
+            <motion.div
+              key={card.key}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Link to={card.to} className="group block">
+                <motion.div
+                  className={`relative overflow-hidden bg-gradient-to-br ${card.gradient} ${card.shadow}
+                    rounded-xl p-5 cursor-pointer`}
+                  whileHover={{ y: -3, scale: 1.01 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/15 rounded-full blur-2xl pointer-events-none" />
+                  <div className="relative">
+                    <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/20 text-white mb-4">
+                      <Icon size={18} weight="regular" />
+                    </div>
+                    <div className="text-4xl font-bold text-white mb-0.5">
+                      {loading
+                        ? <span className="h-8 w-12 bg-white/25 rounded-lg block animate-pulse" />
+                        : stats[card.key]}
+                    </div>
+                    <div className="text-xs text-white/85 font-medium">{card.label}</div>
                   </div>
-                  <div className="text-4xl font-bold text-white mb-0.5">
-                    {loading
-                      ? <span className="h-8 w-12 bg-white/25 rounded-lg block animate-pulse" />
-                      : stats[card.key]}
-                  </div>
-                  <div className="text-xs text-white/85 font-medium">{card.label}</div>
-                </div>
-              </div>
-            </Link>
+                </motion.div>
+              </Link>
+            </motion.div>
           );
         })}
       </div>
@@ -117,9 +133,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            {recent.map((p) => (
-              <Link
+            {recent.map((p, i) => (
+              <motion.div
                 key={p.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: i * 0.05, ease: "easeOut" }}
+              >
+              <Link
                 to="/prompts"
                 className="flex items-center justify-between
                   bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847]
@@ -155,6 +176,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </Link>
+              </motion.div>
             ))}
           </div>
         </div>

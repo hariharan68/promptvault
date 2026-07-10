@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { MotionConfig } from "motion/react";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { ToastProvider } from "./components/common/Toast.jsx";
@@ -14,6 +15,7 @@ import NotFoundPage from "./pages/NotFoundPage.jsx";
 
 export default function App() {
   return (
+    <MotionConfig reducedMotion="user">
     <ThemeProvider>
       <AuthProvider>
         <ToastProvider>
@@ -41,5 +43,6 @@ export default function App() {
         </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
+    </MotionConfig>
   );
 }
