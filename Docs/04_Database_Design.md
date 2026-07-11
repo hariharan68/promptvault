@@ -1,5 +1,5 @@
 # Database Design Document
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09  
@@ -10,7 +10,7 @@
 
 ## 1. Overview
 
-PromptVault uses 6 tables. All primary keys are UUID v4. All timestamps use PostgreSQL server-side defaults (`func.now()`).
+PromptNest uses 6 tables. All primary keys are UUID v4. All timestamps use PostgreSQL server-side defaults (`func.now()`).
 
 ```
 users

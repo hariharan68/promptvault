@@ -1,7 +1,7 @@
 import uuid
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, Computed, DateTime, ForeignKey, Index, Integer, JSON, String, Text
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -10,6 +10,13 @@ from app.database import Base
 
 class Prompt(Base):
     __tablename__ = "prompts"
+    __table_args__ = (
+        Index("ix_prompts_user_created", "user_id", "created_at"),
+        Index("ix_prompts_user_deleted", "user_id", "deleted_at"),
+        Index("ix_prompts_user_favorite", "user_id", "is_favorite"),
+        Index("ix_prompts_group", "group_id"),
+        Index("ix_prompts_search_vector", "search_vector", postgresql_using="gin"),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
@@ -19,6 +26,14 @@ class Prompt(Base):
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     prompt_content = Column(Text, nullable=False)
+    variables = Column(JSON, nullable=False, default=dict)
+    search_vector = Column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(prompt_content, ''))",
+            persisted=True,
+        ),
+    )
 
     is_favorite = Column(Boolean, nullable=False, default=False)
     usage_count = Column(Integer, nullable=False, default=0)

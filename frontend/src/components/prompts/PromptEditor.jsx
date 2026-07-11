@@ -26,7 +26,7 @@ import { getGroups } from "../../api/groupApi.js";
 import Button from "../common/Button.jsx";
 import Input from "../common/Input.jsx";
 
-const EMPTY = { title: "", description: "", prompt_content: "", group_id: "", tag_names: "" };
+const EMPTY = { title: "", description: "", prompt_content: "", group_id: "", tag_names: "", variables: {} };
 
 export default function PromptEditor({ initial = null, onSave, onCancel }) {
   const [form, setForm] = useState(EMPTY);
@@ -44,6 +44,7 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
         prompt_content: initial.prompt_content ?? "",
         group_id: initial.group_id ?? "",
         tag_names: initial.tags?.map((t) => t.name).join(", ") ?? "",
+        variables: initial.variables ?? {},
       });
     } else {
       setForm(EMPTY);
@@ -51,6 +52,11 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
   }, [initial]);
 
   function set(key, value) { setForm((prev) => ({ ...prev, [key]: value })); }
+
+  const variableNames = useMemo(() => {
+    const matches = [...form.prompt_content.matchAll(/\{\{([^{}]+)\}\}/g)];
+    return [...new Set(matches.map((match) => match[1].trim()).filter(Boolean))];
+  }, [form.prompt_content]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -65,6 +71,7 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
         prompt_content: form.prompt_content.trim(),
         group_id: form.group_id || null,
         tag_names: form.tag_names.split(",").map((t) => t.trim()).filter(Boolean),
+        variables: Object.fromEntries(variableNames.map((name) => [name, form.variables[name] ?? { default: "" }])),
       });
     } catch (err) {
       setError(err.response?.data?.detail ?? "Something went wrong.");
@@ -102,6 +109,22 @@ export default function PromptEditor({ initial = null, onSave, onCancel }) {
             transition-all duration-200 font-mono leading-relaxed"
         />
         <DetectedVariables content={form.prompt_content} />
+        {variableNames.length > 0 && (
+          <div className="flex flex-col gap-2 mt-1 rounded-xl border border-[#E5E7EB] dark:border-[#363847] p-3">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">Variable defaults</span>
+            {variableNames.map((name) => (
+              <div key={name} className="flex items-center gap-2">
+                <code className="text-xs text-[#714B67] dark:text-[#C4A0BA] min-w-24">{`{{${name}}}`}</code>
+                <input
+                  value={form.variables[name]?.default ?? ""}
+                  onChange={(e) => set("variables", { ...form.variables, [name]: { ...form.variables[name], default: e.target.value } })}
+                  placeholder="Default value (optional)"
+                  className="flex-1 rounded-lg border border-[#E5E7EB] dark:border-[#363847] bg-[#F3F4F6] dark:bg-[#2C2E3A] px-3 py-1.5 text-xs outline-none"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

@@ -4,3 +4,5 @@ from app.models.prompt import Prompt
 from app.models.tag import Tag
 from app.models.prompt_tag import PromptTag
 from app.models.refresh_token import RefreshToken
+from app.models.prompt_version import PromptVersion
+from app.models.oauth_account import OAuthAccount

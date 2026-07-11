@@ -1,5 +1,5 @@
 {
-  "name": "promptvault-frontend",
+  "name": "promptnest-frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -17,14 +17,15 @@
     "motion": "^12.42.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.24.0"
+    "react-router-dom": "^6.24.0",
+    "swr": "^2.4.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^6.0.3",
     "tailwindcss": "^4.3.2",
-    "vite": "^5.3.1"
+    "vite": "^8.1.4"
   }
 }

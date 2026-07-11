@@ -5,7 +5,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ─────────────────────────────────────────────
-   PromptVault – Plum Design Tokens
+   PromptNest – Plum Design Tokens
    ───────────────────────────────────────────── */
 :root {
   --color-bg:        #FFFFFF;   /* white */

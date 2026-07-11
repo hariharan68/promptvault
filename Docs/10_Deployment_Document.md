@@ -1,5 +1,5 @@
 # Deployment Document
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09
@@ -25,6 +25,7 @@ This document covers **Local Development** in detail and provides a blueprint fo
 | Software | Version | Required For |
 |---|---|---|
 | Python | 3.11+ | Backend |
+| uv | latest | Backend package/venv manager |
 | Node.js | 18+ | Frontend |
 | npm | 9+ | Frontend dependencies |
 | PostgreSQL | 14+ | Database |
@@ -37,7 +38,7 @@ This document covers **Local Development** in detail and provides a blueprint fo
 psql -U postgres
 
 -- Create the database
-CREATE DATABASE promptvault;
+CREATE DATABASE promptnest;
 
 -- Verify
 \l
@@ -47,7 +48,7 @@ The backend creates all tables automatically on first start via `Base.metadata.c
 
 **Connection string (backend/.env):**
 ```
-DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptvault
+DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptnest
 ```
 
 Update `postgres:admin` to match your PostgreSQL username and password.
@@ -56,7 +57,7 @@ Update `postgres:admin` to match your PostgreSQL username and password.
 
 ```bash
 # Navigate to backend directory
-cd Promptvault/backend
+cd PromptNest/backend
 
 # Create virtual environment
 python -m venv venv
@@ -71,23 +72,23 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Create .env file
-echo "DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptvault" > .env
+echo "DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptnest" > .env
 
 # Start the server
-uvicorn app.main:app --reload --port 8002
+uvicorn app.main:app --reload --port 8000
 ```
 
 **Verify:**
-- `http://127.0.0.1:8002/` → `{"message": "PromptVault backend is running"}`
-- `http://127.0.0.1:8002/health` → `{"status": "healthy"}`
-- `http://127.0.0.1:8002/db-test` → `{"message": "Database connection successful"}`
-- `http://127.0.0.1:8002/docs` → Swagger UI
+- `http://127.0.0.1:8000/` → `{"message": "PromptNest backend is running"}`
+- `http://127.0.0.1:8000/health` → `{"status": "healthy"}`
+- `http://127.0.0.1:8000/db-test` → `{"message": "Database connection successful"}`
+- `http://127.0.0.1:8000/docs` → Swagger UI
 
 ### 2.4 Frontend Setup
 
 ```bash
 # Navigate to frontend directory
-cd Promptvault/frontend
+cd PromptNest/frontend
 
 # Install dependencies
 npm install
@@ -97,12 +98,12 @@ npm run dev
 ```
 
 **Verify:**
-- `http://localhost:5173` → PromptVault login page
+- `http://localhost:3000` → PromptNest login page
 
 ### 2.5 Running Tests
 
 ```bash
-# Backend must be running on port 8002
+# Backend must be running on port 8000
 # From backend directory (with venv activated)
 python test_api.py
 ```
@@ -110,7 +111,7 @@ python test_api.py
 Expected output:
 ```
 Results: 73 passed | 0 failed | 73 total
-All tests passed. PromptVault backend is working correctly.
+All tests passed. PromptNest backend is working correctly.
 ```
 
 ---
@@ -171,7 +172,7 @@ python-jose[cryptography]
 ### 5.1 Backend (`backend/.env`)
 ```env
 # Required
-DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptvault
+DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptnest
 ```
 
 **Missing (must add before production):**
@@ -187,7 +188,7 @@ print(secrets.token_hex(32))
 
 ### 5.2 Frontend (`frontend/.env`)
 ```env
-VITE_API_BASE_URL=http://127.0.0.1:8002/api/v1
+VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
 For production, change to:
@@ -222,13 +223,13 @@ VITE_API_BASE_URL=https://api.yourdomain.com/api/v1
 ### 6.2 Backend Production Start
 ```bash
 # Production: no --reload, explicit workers
-uvicorn app.main:app --host 0.0.0.0 --port 8002 --workers 4
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 Or with gunicorn:
 ```bash
 pip install gunicorn
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8002
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
 ### 6.3 Frontend Production Build
@@ -247,7 +248,7 @@ server {
     listen 80;
     server_name yourdomain.com;
 
-    root /var/www/promptvault/dist;
+    root /var/www/promptnest/dist;
     index index.html;
 
     # SPA fallback — all routes return index.html
@@ -257,7 +258,7 @@ server {
 
     # Proxy API to FastAPI backend
     location /api/ {
-        proxy_pass http://127.0.0.1:8002;
+        proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -326,7 +327,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ```yaml
@@ -336,7 +337,7 @@ services:
   db:
     image: postgres:14
     environment:
-      POSTGRES_DB: promptvault
+      POSTGRES_DB: promptnest
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
     volumes:
@@ -345,9 +346,9 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8002:8002"
+      - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://postgres:secret@db:5432/promptvault
+      DATABASE_URL: postgresql://postgres:secret@db:5432/promptnest
       SECRET_KEY: <your-secret-key>
     depends_on:
       - db
@@ -382,5 +383,5 @@ curl -X POST https://api.yourdomain.com/api/v1/auth/register \
 
 # Frontend
 curl https://yourdomain.com
-# Expected: HTML page with <title>PromptVault</title>
+# Expected: HTML page with <title>PromptNest</title>
 ```

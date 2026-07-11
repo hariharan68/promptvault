@@ -1,5 +1,5 @@
 # Security Document
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09
@@ -8,7 +8,7 @@
 
 ## 1. Security Overview
 
-PromptVault is a personal prompt management application with user authentication and user-scoped data isolation. This document covers the security controls currently implemented, known vulnerabilities, and required fixes before any production deployment.
+PromptNest is a personal prompt management application with user authentication and user-scoped data isolation. This document covers the security controls currently implemented, known vulnerabilities, and required fixes before any production deployment.
 
 ---
 
@@ -27,7 +27,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 - Passwords hashed with **bcrypt** (work factor ~12 by default in passlib).
 - bcrypt is a slow, adaptive hash function specifically designed for passwords.
 - Verification uses `pwd_context.verify(plain, hashed)` — constant-time comparison.
-- **72-byte limit enforced:** bcrypt silently truncates inputs > 72 bytes, so PromptVault enforces this explicitly:
+- **72-byte limit enforced:** bcrypt silently truncates inputs > 72 bytes, so PromptNest enforces this explicitly:
 
 ```python
 def hash_password(password: str) -> str:

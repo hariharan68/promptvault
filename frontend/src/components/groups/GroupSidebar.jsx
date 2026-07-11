@@ -103,7 +103,7 @@ export default function GroupSidebar({ isOpen, onClose }) {
           <div className="w-8 h-8 bg-[#714B67] rounded-lg flex items-center justify-center flex-shrink-0">
             <Lock size={15} className="text-white" weight="bold" />
           </div>
-          <span className="font-serif text-[#111827] dark:text-[#F1F2F6] text-[17px] tracking-tight">PromptVault</span>
+          <span className="font-serif text-[#111827] dark:text-[#F1F2F6] text-[17px] tracking-tight">PromptNest</span>
         </div>
 
         {/* Main nav */}
@@ -123,6 +123,10 @@ export default function GroupSidebar({ isOpen, onClose }) {
           <NavLink to="/settings" className={navLinkClass} onClick={onClose}>
             <GearSix size={16} />
             Settings
+          </NavLink>
+          <NavLink to="/trash" className={navLinkClass} onClick={onClose}>
+            <Trash size={16} />
+            Trash
           </NavLink>
         </nav>
 

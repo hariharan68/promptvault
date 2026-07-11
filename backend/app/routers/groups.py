@@ -1,4 +1,3 @@
-from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,6 +7,7 @@ from app.core.dependencies import get_current_user
 from app.database import get_db
 from app.models.user import User
 from app.schemas.group import GroupCreate, GroupResponse, GroupUpdate
+from app.schemas.common import CollectionResponse
 from app.services.group_service import (
     create_group,
     delete_group,
@@ -40,12 +40,13 @@ def create_new_group(
     return create_group(db, group_data, current_user.id)
 
 
-@router.get("/", response_model=List[GroupResponse])
+@router.get("/", response_model=CollectionResponse[GroupResponse])
 def list_groups(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return get_groups(db, current_user.id)
+    groups = get_groups(db, current_user.id)
+    return {"data": groups, "meta": {"total": len(groups)}}
 
 
 @router.get("/{group_id}", response_model=GroupResponse)

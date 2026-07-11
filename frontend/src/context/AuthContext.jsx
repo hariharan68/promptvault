@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { getMe } from "../api/authApi.js";
+import { getMe, logout as logoutApi, refresh } from "../api/authApi.js";
 
 const AuthContext = createContext(null);
 
@@ -9,11 +9,13 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    getMe()
+    const session = token
+      ? getMe()
+      : refresh().then(({ data }) => {
+          localStorage.setItem("access_token", data.access_token);
+          return getMe();
+        });
+    session
       .then((res) => setUser(res.data))
       .catch(() => localStorage.removeItem("access_token"))
       .finally(() => setLoading(false));
@@ -24,6 +26,7 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    logoutApi().catch(() => {});
     localStorage.removeItem("access_token");
     setUser(null);
   }

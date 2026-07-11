@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.tag import TagResponse
 
@@ -12,6 +12,7 @@ class PromptBase(BaseModel):
     description: Optional[str] = None
     prompt_content: str
     group_id: Optional[UUID] = None
+    variables: dict[str, dict[str, str | None]] = Field(default_factory=dict)
 
 
 class PromptCreate(PromptBase):
@@ -37,6 +38,23 @@ class PromptResponse(PromptBase):
     created_at: datetime
     updated_at: datetime
     tags: list[TagResponse] = []
+
+
+class PromptVersionResponse(BaseModel):
+    id: UUID
+    prompt_id: UUID
+    version_number: int
+    title: str
+    description: Optional[str] = None
+    prompt_content: str
+    group_id: Optional[UUID] = None
+    is_favorite: bool
+    variables: dict = Field(default_factory=dict)
+    tags: list[str] = Field(default_factory=list)
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
     class Config:
         from_attributes = True

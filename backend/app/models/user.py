@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, Column, String, Text, DateTime
+from sqlalchemy import Boolean, Column, String, Text, DateTime, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -12,7 +12,12 @@ class User(Base):                       # Python class connected to SQLAlchemy B
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String(50), unique=True, nullable=False)
     email = Column(String(255), nullable=False, unique=True)
-    password_hash = Column(Text, nullable=False)
+    password_hash = Column(Text, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
+    token_version = Column(Integer, nullable=False, server_default="0", default=0)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    @property
+    def has_password(self) -> bool:
+        return bool(self.password_hash)

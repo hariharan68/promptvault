@@ -1,5 +1,5 @@
 # Functional Specification Document
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09
@@ -7,7 +7,7 @@
 ---
 
 ## 1. Purpose
-This document describes the exact behavior of every feature in PromptVault — what each screen shows, what each action does, and what each API endpoint returns. It bridges the PRD (what we want) and the SRS (what we require) with the concrete behavior visible in the code.
+This document describes the exact behavior of every feature in PromptNest — what each screen shows, what each action does, and what each API endpoint returns. It bridges the PRD (what we want) and the SRS (what we require) with the concrete behavior visible in the code.
 
 ---
 
@@ -20,7 +20,7 @@ This document describes the exact behavior of every feature in PromptVault — w
 
 **Layout:**
 - Centered card (max-width 380px) on dark background
-- "PromptVault" title at top
+- "PromptNest" title at top
 - Email input field
 - Password input field
 - "Login" button (full width)
@@ -79,7 +79,7 @@ This document describes the exact behavior of every feature in PromptVault — w
 **File:** `src/components/groups/GroupSidebar.jsx`
 
 **Sections:**
-1. **Brand name:** "PromptVault" heading.
+1. **Brand name:** "PromptNest" heading.
 2. **Navigation links:**
    - Dashboard → `/dashboard`
    - All Prompts → `/prompts`

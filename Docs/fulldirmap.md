@@ -1,4 +1,4 @@
-promptvault-ai/
+promptnest-ai/
 │
 ├── backend/
 │   │

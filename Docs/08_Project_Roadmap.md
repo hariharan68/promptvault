@@ -1,5 +1,5 @@
 # Project Roadmap
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09  
@@ -128,7 +128,7 @@
 
 - [ ] Mobile app (React Native or PWA)
 - [ ] Browser extension (Chrome/Firefox) — save prompts from any chat interface
-- [ ] CLI tool — `promptvault get <name> | pbcopy`
+- [ ] CLI tool — `promptnest get <name> | pbcopy`
 - [ ] API keys — Allow third-party tools to access personal prompt library
 - [ ] Webhooks — Trigger external actions when prompts are used
 - [ ] Analytics dashboard — Usage trends, top prompts, search analytics

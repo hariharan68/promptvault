@@ -1,5 +1,5 @@
 # Product Requirements Document (PRD)
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09  
@@ -10,7 +10,7 @@
 ## 1. Product Overview
 
 ### 1.1 Product Name
-PromptVault
+PromptNest
 
 ### 1.2 One-Line Description
 A personal prompt management platform where users can create, organize, search, and reuse AI prompts with groups, tags, favorites, and usage tracking.
@@ -24,7 +24,7 @@ AI practitioners — developers, writers, researchers — accumulate dozens or h
 - Track which prompts are actually being used
 - Favorite the best ones for fast recall
 
-PromptVault solves this by acting as a personal prompt library with a clean, fast UI and a robust backend.
+PromptNest solves this by acting as a personal prompt library with a clean, fast UI and a robust backend.
 
 ### 1.4 Target Users
 | Persona | Description |

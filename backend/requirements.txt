@@ -5,7 +5,9 @@ psycopg2-binary
 python-dotenv
 pydantic
 pydantic-settings
+alembic
 email-validator
 passlib[bcrypt]
 python-jose[cryptography]
 email-validator
+httpx

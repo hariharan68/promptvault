@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Star, Copy, Check, PencilSimple, CopySimple, Trash } from "@phosphor-icons/react";
+import { Star, Copy, Check, PencilSimple, CopySimple, Trash, ClockCounterClockwise } from "@phosphor-icons/react";
 import TagPill from "../tags/TagPill.jsx";
 import PromptFillModal from "./PromptFillModal.jsx";
 
@@ -25,7 +25,7 @@ function ActionBtn({ onClick, active = false, danger = false, accent = false, ch
   );
 }
 
-export default function PromptCard({ prompt, onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick }) {
+export default function PromptCard({ prompt, onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick, onHistory, selected = false, onSelect }) {
   const [copied, setCopied] = useState(false);
   const [fillOpen, setFillOpen] = useState(false);
 
@@ -64,6 +64,7 @@ export default function PromptCard({ prompt, onEdit, onDelete, onDuplicate, onCo
 
         <div className="flex flex-col gap-3.5 p-5">
           <div className="flex items-start justify-between gap-2">
+            {onSelect && <input type="checkbox" checked={selected} onChange={() => onSelect(prompt.id)} aria-label={`Select ${prompt.title}`} className="mt-1 accent-[#714B67]" />}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold text-[#111827] dark:text-[#F1F2F6] text-sm leading-snug line-clamp-1">
@@ -117,6 +118,7 @@ export default function PromptCard({ prompt, onEdit, onDelete, onDuplicate, onCo
             </ActionBtn>
             <ActionBtn onClick={() => onEdit(prompt)}><PencilSimple size={11} /> Edit</ActionBtn>
             <ActionBtn onClick={() => onDuplicate(prompt)}><CopySimple size={11} /> Duplicate</ActionBtn>
+            {onHistory && <ActionBtn onClick={() => onHistory(prompt)}><ClockCounterClockwise size={11} /> History</ActionBtn>}
             <ActionBtn onClick={() => onDelete(prompt)} danger><Trash size={11} /> Delete</ActionBtn>
             <div className="ml-auto flex items-center gap-2">
               <span className="text-xs text-[#9CA3AF] dark:text-[#6B7280]">{dateStr}</span>

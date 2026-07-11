@@ -1,5 +1,5 @@
 # System Architecture Document
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09
@@ -8,23 +8,23 @@
 
 ## 1. Architecture Overview
 
-PromptVault follows a classic three-tier architecture:
+PromptNest follows a classic three-tier architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CLIENT TIER                               │
 │                                                             │
-│  Browser → React 18 SPA (Vite, port 5173)                  │
+│  Browser → React 18 SPA (Vite, port 3000)                  │
 │  ├── React Router DOM v6 (client-side routing)             │
 │  ├── Axios (HTTP client with interceptors)                  │
 │  ├── AuthContext (React Context API for auth state)         │
 │  └── Component tree (pages → layouts → components)         │
 └─────────────────────────┬───────────────────────────────────┘
-                          │ HTTP/JSON (proxied /api → :8002)
+                          │ HTTP/JSON (proxied /api → :8000)
 ┌─────────────────────────▼───────────────────────────────────┐
 │                   APPLICATION TIER                           │
 │                                                             │
-│  FastAPI Backend (uvicorn, port 8002)                       │
+│  FastAPI Backend (uvicorn, port 8000)                       │
 │  ├── Routers (HTTP layer: validate, route, respond)         │
 │  ├── Services (business logic, DB operations)               │
 │  ├── Schemas (Pydantic: request/response validation)        │
@@ -35,7 +35,7 @@ PromptVault follows a classic three-tier architecture:
 ┌─────────────────────────▼───────────────────────────────────┐
 │                     DATA TIER                                │
 │                                                             │
-│  PostgreSQL (port 5432, database: promptvault)              │
+│  PostgreSQL (port 5432, database: promptnest)              │
 │  ├── users                                                  │
 │  ├── groups                                                  │
 │  ├── tags                                                    │
@@ -279,7 +279,7 @@ Example: User searches for "python" prompts.
 4. promptApi.getPrompts({ q: "python" })
 5. client.get("/prompts/", { params: { q: "python" } })
    └── Axios interceptor adds: Authorization: Bearer <token>
-6. HTTP GET http://127.0.0.1:8002/api/v1/prompts/?q=python
+6. HTTP GET http://127.0.0.1:8000/api/v1/prompts/?q=python
 7. FastAPI router: list_prompts(q="python", ..., current_user=...)
    └── get_current_user dependency validates JWT → returns User
 8. prompt_service.get_prompts(db, user_id, q="python")
@@ -299,21 +299,21 @@ Example: User searches for "python" prompts.
 ```
 Developer Machine
 ├── PostgreSQL (system service, port 5432)
-├── uvicorn app.main:app --reload --port 8002  (backend)
-└── npm run dev (frontend, port 5173)
-    └── Vite proxy: /api/* → http://127.0.0.1:8002
+├── uvicorn app.main:app --reload --port 8000  (backend)
+└── npm run dev (frontend, port 3000)
+    └── Vite proxy: /api/* → http://127.0.0.1:8000
 ```
 
 **Vite proxy config (`vite.config.js`):**
 ```javascript
 proxy: {
   "/api": {
-    target: "http://127.0.0.1:8002",
+    target: "http://127.0.0.1:8000",
     changeOrigin: true,
   }
 }
 ```
-This means the browser calls `http://localhost:5173/api/...` and Vite forwards it to the FastAPI server, eliminating CORS issues in development.
+This means the browser calls `http://localhost:3000/api/...` and Vite forwards it to the FastAPI server, eliminating CORS issues in development.
 
 ---
 

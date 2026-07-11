@@ -1,7 +1,7 @@
 """
 test_api.py
 ───────────
-Automated test suite for PromptVault API.
+Automated test suite for PromptNest API.
 
 Before running:
 1. Start FastAPI:
@@ -11,11 +11,12 @@ Before running:
    python test_api.py
 """
 
+import os
 import uuid
 import requests
 
 
-BASE_URL = "http://127.0.0.1:8002"
+BASE_URL = os.getenv("PROMPTNEST_BASE_URL", "http://127.0.0.1:8000")
 API_URL = f"{BASE_URL}/api/v1"
 
 passed = 0
@@ -58,11 +59,17 @@ def get_json(response):
         return {}
 
 
+def prompt_items(data):
+    if not isinstance(data, dict):
+        return data
+    return data.get("data", data.get("items", data))
+
+
 def auth_headers(token):
     return {"Authorization": f"Bearer {token}"}
 
 
-print("\nPromptVault API - Automated Test Suite")
+print("\nPromptNest API - Automated Test Suite")
 print(f"Server: {BASE_URL}\n")
 
 unique = uuid.uuid4().hex[:8]
@@ -195,7 +202,7 @@ r = requests.get(f"{API_URL}/groups/", headers=auth_headers(access_token))
 groups_data = get_json(r)
 
 check(r.status_code == 200, "GET /groups/")
-check(isinstance(groups_data, list), "Groups response is list")
+check(isinstance(prompt_items(groups_data), list), "Groups response contains data")
 
 r = requests.get(f"{API_URL}/groups/{group_id}", headers=auth_headers(access_token))
 single_group = get_json(r)
@@ -233,7 +240,7 @@ r = requests.get(f"{API_URL}/tags/", headers=auth_headers(access_token))
 tags_data = get_json(r)
 
 check(r.status_code == 200, "GET /tags/")
-check(isinstance(tags_data, list), "Tags response is list")
+check(isinstance(prompt_items(tags_data), list), "Tags response contains data")
 
 r = requests.get(f"{API_URL}/tags/{tag_id}", headers=auth_headers(access_token))
 single_tag = get_json(r)
@@ -267,7 +274,7 @@ r = requests.get(f"{API_URL}/prompts/", headers=auth_headers(access_token))
 prompts_data = get_json(r)
 
 check(r.status_code == 200, "GET /prompts/")
-check(isinstance(prompts_data, list), "Prompts response is list")
+check(isinstance(prompt_items(prompts_data), list), "Prompts response contains items")
 
 r = requests.get(f"{API_URL}/prompts/{prompt_id}", headers=auth_headers(access_token))
 single_prompt = get_json(r)
@@ -345,16 +352,19 @@ check(r.status_code == 201, "POST /prompts/ (filter test prompt)", filter_prompt
 
 r = requests.get(f"{API_URL}/prompts/?q=FilterTest", headers=auth_headers(access_token))
 q_results = get_json(r)
+q_results = prompt_items(q_results)
 check(r.status_code == 200, "GET /prompts/?q= returns 200")
 check(any(p.get("id") == filter_prompt_id for p in q_results), "q search returns created prompt")
 
 r = requests.get(f"{API_URL}/prompts/?group_id={group_id}", headers=auth_headers(access_token))
 group_results = get_json(r)
+group_results = prompt_items(group_results)
 check(r.status_code == 200, "GET /prompts/?group_id= returns 200")
 check(any(p.get("id") == filter_prompt_id for p in group_results), "group_id filter returns created prompt")
 
 r = requests.get(f"{API_URL}/prompts/?tag=filter-tag-{unique}", headers=auth_headers(access_token))
 tag_results = get_json(r)
+tag_results = prompt_items(tag_results)
 check(r.status_code == 200, "GET /prompts/?tag= returns 200")
 check(any(p.get("id") == filter_prompt_id for p in tag_results), "tag filter returns created prompt")
 
@@ -363,11 +373,13 @@ check(r.status_code == 200, "POST /prompts/{filter_prompt_id}/favorite (setup fo
 
 r = requests.get(f"{API_URL}/prompts/?is_favorite=true", headers=auth_headers(access_token))
 fav_results = get_json(r)
+fav_results = prompt_items(fav_results)
 check(r.status_code == 200, "GET /prompts/?is_favorite=true returns 200")
 check(any(p.get("id") == filter_prompt_id for p in fav_results), "is_favorite=true filter returns favorited prompt")
 
 r = requests.get(f"{API_URL}/prompts/?q=FilterTest&is_favorite=true", headers=auth_headers(access_token))
 combined_results = get_json(r)
+combined_results = prompt_items(combined_results)
 check(r.status_code == 200, "GET /prompts/?q=&is_favorite=true returns 200")
 check(any(p.get("id") == filter_prompt_id for p in combined_results), "Combined q+is_favorite filter works")
 
@@ -376,6 +388,7 @@ check(r.status_code == 200, "DELETE /prompts/{filter_prompt_id} (filter test pro
 
 r = requests.get(f"{API_URL}/prompts/?q=FilterTest", headers=auth_headers(access_token))
 after_delete_results = get_json(r)
+after_delete_results = prompt_items(after_delete_results)
 check(r.status_code == 200, "GET /prompts/?q= after delete returns 200")
 check(
     not any(p.get("id") == filter_prompt_id for p in after_delete_results),
@@ -405,6 +418,6 @@ print("\n" + "=" * 60)
 print(f"Results: {passed} passed | {failed} failed | {total} total")
 
 if failed == 0:
-    print("\nAll tests passed. PromptVault backend is working correctly.\n")
+    print("\nAll tests passed. PromptNest backend is working correctly.\n")
 else:
     print("\nSome tests failed. Check the failed lines above.\n")

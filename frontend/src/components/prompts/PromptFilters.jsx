@@ -24,11 +24,21 @@ function FilterSelect({ label, value, onChange, children }) {
 export default function PromptFilters({ filters, onChange }) {
   const [groups, setGroups] = useState([]);
   const [tags, setTags] = useState([]);
+  const [searchInput, setSearchInput] = useState(filters.q);
 
   useEffect(() => {
     getGroups().then((r) => setGroups(r.data)).catch(() => {});
     getTags().then((r) => setTags(r.data)).catch(() => {});
   }, []);
+
+  useEffect(() => setSearchInput(filters.q), [filters.q]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== filters.q) onChange({ ...filters, q: searchInput });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   function set(key, value) { onChange({ ...filters, [key]: value }); }
   function clear() { onChange({ q: "", group_id: "", tag: "", is_favorite: "" }); }
@@ -44,8 +54,8 @@ export default function PromptFilters({ filters, onChange }) {
           <div className="relative">
             <MagnifyingGlass size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] dark:text-[#6B7280] pointer-events-none" />
             <input
-              value={filters.q}
-              onChange={(e) => set("q", e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search prompts..."
               className="w-full bg-[#F3F4F6] dark:bg-[#2C2E3A] border border-[#E5E7EB] dark:border-[#363847] rounded-xl text-sm
                 text-[#111827] dark:text-[#F1F2F6] placeholder:text-[#9CA3AF] dark:placeholder:text-[#6B7280]

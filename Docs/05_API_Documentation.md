@@ -1,9 +1,9 @@
 # API Documentation
-# PromptVault REST API
+# PromptNest REST API
 
 **Version:** 1.0  
-**Base URL:** `http://127.0.0.1:8002/api/v1`  
-**Swagger UI:** `http://127.0.0.1:8002/docs`  
+**Base URL:** `http://127.0.0.1:8000/api/v1`  
+**Swagger UI:** `http://127.0.0.1:8000/docs`  
 **Authentication:** Bearer token (JWT, HS256, 30-minute expiry)
 
 All protected endpoints require the header:
@@ -448,7 +448,7 @@ Health check. No authentication required.
 
 **Response 200:**
 ```json
-{ "message": "PromptVault backend is running" }
+{ "message": "PromptNest backend is running" }
 ```
 
 ---

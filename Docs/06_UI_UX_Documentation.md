@@ -1,5 +1,5 @@
 # UI/UX Documentation
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09  
@@ -133,7 +133,7 @@ Defined as CSS variables in `src/styles/index.css`:
 │      (full-screen dark bg)         │
 │                                    │
 │    ┌──────────────────────────┐    │
-│    │    PromptVault           │    │
+│    │    PromptNest           │    │
 │    │    ─────────────────     │    │
 │    │    [Email input]         │    │
 │    │    [Password input]      │    │
@@ -156,7 +156,7 @@ Card: max-width 380px, centered, surface background
 │   SIDEBAR        │                                         │
 │   240px fixed    │   MAIN CONTENT (flex: 1, pad 24px)      │
 │                  │                                         │
-│  PromptVault     │   [Page content here]                   │
+│  PromptNest     │   [Page content here]                   │
 │                  │                                         │
 │  > Dashboard     │                                         │
 │  > All Prompts   │                                         │

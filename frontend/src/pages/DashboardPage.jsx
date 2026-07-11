@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { Archive, Star, FolderSimple, ArrowRight } from "@phosphor-icons/react";
-import { getPrompts } from "../api/promptApi.js";
-import { getGroups } from "../api/groupApi.js";
+import { getDashboardStats, getRecentPrompts } from "../api/dashboardApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const statCards = [
@@ -39,14 +38,21 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ total: 0, favorites: 0, groups: 0 });
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    Promise.all([getPrompts(), getPrompts({ is_favorite: true }), getGroups()])
-      .then(([all, favs, groups]) => {
-        setStats({ total: all.data.length, favorites: favs.data.length, groups: groups.data.length });
-        setRecent(all.data.slice(0, 5));
-      }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  function loadDashboard() {
+    setLoading(true);
+    setError("");
+    Promise.all([getDashboardStats(), getRecentPrompts()])
+      .then(([statsResponse, recentResponse]) => {
+        setStats(statsResponse.data);
+        setRecent(recentResponse.data.data ?? recentResponse.data);
+      }).catch((err) => {
+        setError(err.response?.data?.detail ?? "Unable to load your dashboard.");
+      }).finally(() => setLoading(false));
+  }
+
+  useEffect(() => { loadDashboard(); }, []);
 
   const isNew = !loading && stats.total === 0;
   const hour = new Date().getHours();
@@ -65,6 +71,13 @@ export default function DashboardPage() {
           {greeting}. {user?.username ? `Here's your vault, ${user.username}.` : "Here's what's stored."}
         </h1>
       </motion.div>
+
+      {error && (
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button onClick={loadDashboard} className="font-semibold underline">Retry</button>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -1,5 +1,5 @@
 # Test Plan Document
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09  
@@ -10,7 +10,7 @@
 
 ## 1. Test Strategy
 
-PromptVault v1.0 uses **black-box integration testing** via HTTP requests against a running backend. Tests call the real FastAPI server with a real PostgreSQL database — no mocking, no in-memory substitutes.
+PromptNest v1.0 uses **black-box integration testing** via HTTP requests against a running backend. Tests call the real FastAPI server with a real PostgreSQL database — no mocking, no in-memory substitutes.
 
 ### 1.1 Approach
 - Single test file (`test_api.py`) using the `requests` library.
@@ -20,8 +20,8 @@ PromptVault v1.0 uses **black-box integration testing** via HTTP requests agains
 - Server must be running before test execution.
 
 ### 1.2 Pre-Requisites
-1. PostgreSQL running with `promptvault` database accessible.
-2. FastAPI backend running: `uvicorn app.main:app --reload --port 8002`
+1. PostgreSQL running with `promptnest` database accessible.
+2. FastAPI backend running: `uvicorn app.main:app --reload --port 8000`
 3. Python packages installed: `pip install requests`
 
 ### 1.3 Test Execution
@@ -250,9 +250,9 @@ check(len(data) >= 0, "Has expected data", f"count={len(data)}")
 ## 6. CI/CD Integration Notes
 
 To run tests in CI:
-1. Start a PostgreSQL instance with database `promptvault`.
+1. Start a PostgreSQL instance with database `promptnest`.
 2. Run `alembic upgrade head` (or equivalent schema setup).
-3. Start FastAPI: `uvicorn app.main:app --port 8002 &`
-4. Wait for server ready: `curl --retry 5 --retry-delay 1 http://127.0.0.1:8002/health`
+3. Start FastAPI: `uvicorn app.main:app --port 8000 &`
+4. Wait for server ready: `curl --retry 5 --retry-delay 1 http://127.0.0.1:8000/health`
 5. Run tests: `python test_api.py`
 6. Check exit code: add `sys.exit(1 if failed > 0 else 0)` to `test_api.py`.

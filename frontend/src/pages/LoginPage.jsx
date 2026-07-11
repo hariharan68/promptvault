@@ -4,6 +4,7 @@ import { Check, Warning, Lock } from "@phosphor-icons/react";
 import { login, getMe } from "../api/authApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Input from "../components/common/Input.jsx";
+import OAuthButtons from "../components/auth/OAuthButtons.jsx";
 
 const features = [
   "Save and search prompts across all your AI tools",
@@ -50,7 +51,7 @@ export default function LoginPage() {
           <div className="w-8 h-8 bg-[#714B67] rounded-lg flex items-center justify-center flex-shrink-0">
             <Lock size={15} className="text-white" weight="bold" />
           </div>
-          <span className="font-serif text-[#F1F2F6] text-[17px] tracking-tight">PromptVault</span>
+          <span className="font-serif text-[#F1F2F6] text-[17px] tracking-tight">PromptNest</span>
         </div>
 
         <div className="relative z-10">
@@ -74,7 +75,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 text-[#4A4D60] text-xs font-mono">promptvault.app</div>
+        <div className="relative z-10 text-[#4A4D60] text-xs font-mono">promptnest.app</div>
       </div>
 
       {/* Right form panel */}
@@ -85,12 +86,22 @@ export default function LoginPage() {
             <div className="w-8 h-8 bg-[#714B67] rounded-lg flex items-center justify-center">
               <Lock size={15} className="text-white" weight="bold" />
             </div>
-            <span className="font-serif text-[#111827] text-lg">PromptVault</span>
+            <span className="font-serif text-[#111827] text-lg">PromptNest</span>
           </div>
+
+          <Link to="/"
+            className="inline-flex items-center gap-1 text-xs text-[#9CA3AF]
+              hover:text-[#714B67] mb-6 transition-colors">
+            ← Back to home
+          </Link>
 
           <div className="mb-8">
             <h1 className="font-serif text-2xl text-[#111827] mb-1">Welcome back</h1>
             <p className="text-[#6B7280] text-sm">Sign in to your prompt library</p>
+          </div>
+
+          <div className="mb-4">
+            <OAuthButtons />
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

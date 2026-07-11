@@ -19,6 +19,7 @@ def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
+        token_version = payload.get("ver")
 
         if user_id is None:
             raise HTTPException(
@@ -34,10 +35,18 @@ def get_current_user(
 
     user = db.query(User).filter(User.id == user_id).first()
 
-    if user is None:
+    if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
+        )
+
+    # Reject access tokens minted before a password change or "sign out
+    # everywhere" — those actions bump the user's token_version.
+    if token_version is None or token_version != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked"
         )
 
     return user

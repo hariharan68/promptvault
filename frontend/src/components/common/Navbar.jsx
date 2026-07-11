@@ -19,7 +19,7 @@ export default function Navbar({ onMenuOpen, onOpenPalette }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const title = PAGE_TITLES[pathname] ?? "PromptVault";
+  const title = PAGE_TITLES[pathname] ?? "PromptNest";
   const avatarLetter = user?.username?.[0]?.toUpperCase() ?? "U";
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function Navbar({ onMenuOpen, onOpenPalette }) {
 
   function handleLogout() {
     logout();
-    navigate("/login");
+    navigate("/");
   }
 
   return (
@@ -56,7 +56,7 @@ export default function Navbar({ onMenuOpen, onOpenPalette }) {
           <div className="w-7 h-7 bg-[#714B67] rounded-md flex items-center justify-center">
             <Lock size={14} className="text-white" weight="bold" />
           </div>
-          <span className="font-serif text-[#111827] dark:text-[#F1F2F6] text-base tracking-tight">PromptVault</span>
+          <span className="font-serif text-[#111827] dark:text-[#F1F2F6] text-base tracking-tight">PromptNest</span>
         </div>
       </div>
 

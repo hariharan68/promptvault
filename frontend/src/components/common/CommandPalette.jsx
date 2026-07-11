@@ -47,8 +47,8 @@ export default function CommandPalette({ open, onClose }) {
     setSelectedIndex(0);
     setCopiedId(null);
     setLoading(true);
-    getPrompts()
-      .then((r) => setAllPrompts(r.data))
+    getPrompts({ page_size: 100 })
+      .then((r) => setAllPrompts(r.data.data ?? r.data.items ?? []))
       .catch(() => setAllPrompts([]))
       .finally(() => setLoading(false));
     setTimeout(() => inputRef.current?.focus(), 30);

@@ -44,7 +44,7 @@ function SkeletonRow() {
   );
 }
 
-export default function PromptList({ prompts, loading, view = "grid", onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick }) {
+export default function PromptList({ prompts, loading, view = "grid", onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick, onHistory, onSelect, selectedIds = [] }) {
   if (loading) {
     if (view === "list") {
       return (
@@ -76,7 +76,7 @@ export default function PromptList({ prompts, loading, view = "grid", onEdit, on
     );
   }
 
-  const sharedProps = { onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick };
+  const sharedProps = { onEdit, onDelete, onDuplicate, onCopy, onFavoriteToggle, onTagClick, onHistory, onSelect, selectedIds };
 
   if (view === "list") {
     return (
@@ -104,7 +104,7 @@ export default function PromptList({ prompts, loading, view = "grid", onEdit, on
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22, delay: Math.min(i, 8) * 0.04, ease: "easeOut" }}
         >
-          <PromptCard prompt={p} {...sharedProps} />
+          <PromptCard prompt={p} selected={selectedIds.includes(p.id)} {...sharedProps} />
         </motion.div>
       ))}
     </div>

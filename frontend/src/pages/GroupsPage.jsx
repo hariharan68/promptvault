@@ -141,10 +141,10 @@ export default function GroupsPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [groupsRes, promptsRes] = await Promise.all([getGroups(), getPrompts()]);
+      const [groupsRes, promptsRes] = await Promise.all([getGroups(), getPrompts({ page_size: 100 })]);
       setGroups(groupsRes.data);
       const counts = {};
-      promptsRes.data.forEach((p) => { if (p.group_id) counts[p.group_id] = (counts[p.group_id] || 0) + 1; });
+      (promptsRes.data.data ?? promptsRes.data.items ?? []).forEach((p) => { if (p.group_id) counts[p.group_id] = (counts[p.group_id] || 0) + 1; });
       setPromptCounts(counts);
     } catch {}
     finally { setLoading(false); }

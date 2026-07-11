@@ -1,5 +1,5 @@
 # Software Requirements Specification (SRS)
-# PromptVault
+# PromptNest
 
 **Version:** 1.0  
 **Date:** 2026-07-09
@@ -9,10 +9,10 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-This document specifies the complete software requirements for PromptVault v1.0 — a personal AI prompt management system. It covers functional requirements, non-functional requirements, system constraints, and external interface requirements derived directly from the implemented codebase.
+This document specifies the complete software requirements for PromptNest v1.0 — a personal AI prompt management system. It covers functional requirements, non-functional requirements, system constraints, and external interface requirements derived directly from the implemented codebase.
 
 ### 1.2 Scope
-PromptVault consists of:
+PromptNest consists of:
 - A **REST API backend** built with FastAPI (Python), backed by PostgreSQL via SQLAlchemy ORM.
 - A **Single Page Application frontend** built with React 18 + Vite, communicating with the backend over HTTP/JSON.
 
@@ -34,12 +34,12 @@ PromptVault consists of:
 ### 2.1 System Context
 ```
 Browser (React SPA)
-    │  HTTP/JSON (Axios, port 5173 → proxied to 8002)
+    │  HTTP/JSON (Axios, port 3000 → proxied to 8000)
     ▼
-FastAPI Backend (port 8002)
+FastAPI Backend (port 8000)
     │  SQLAlchemy ORM
     ▼
-PostgreSQL Database (port 5432, database: promptvault)
+PostgreSQL Database (port 5432, database: promptnest)
 ```
 
 ### 2.2 Technology Stack
@@ -205,9 +205,9 @@ PostgreSQL Database (port 5432, database: promptvault)
 
 | Constraint | Value |
 |---|---|
-| Backend port | 8002 |
-| Frontend dev port | 5173 |
-| Database | PostgreSQL on localhost:5432, database `promptvault` |
+| Backend port | 8000 |
+| Frontend dev port | 3000 |
+| Database | PostgreSQL on localhost:5432, database `promptnest` |
 | JWT algorithm | HS256 |
 | JWT expiry | 30 minutes |
 | Password max length | 72 bytes (bcrypt limit) |
@@ -226,15 +226,15 @@ PostgreSQL Database (port 5432, database: promptvault)
 - Data format: JSON (request and response bodies)
 - Authentication: Bearer token in `Authorization` header
 - API prefix: `/api/v1`
-- Swagger UI: `http://127.0.0.1:8002/docs`
+- Swagger UI: `http://127.0.0.1:8000/docs`
 
 ### 6.2 Database Interface
-- Connection string: `postgresql://postgres:admin@localhost:5432/promptvault`
+- Connection string: `postgresql://postgres:admin@localhost:5432/promptnest`
 - Connection managed by: SQLAlchemy `create_engine` (synchronous)
 - Session lifecycle: per-request, via `get_db()` dependency
 
 ### 6.3 Frontend ↔ Backend Interface
-- Base URL (via `.env`): `VITE_API_BASE_URL=http://127.0.0.1:8002/api/v1`
-- Vite dev proxy: requests to `/api/*` are proxied to `http://127.0.0.1:8002`
+- Base URL (via `.env`): `VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1`
+- Vite dev proxy: requests to `/api/*` are proxied to `http://127.0.0.1:8000`
 - Auth header attached by Axios request interceptor from `localStorage.getItem("access_token")`
 - 401 responses handled by Axios response interceptor → clears token → redirects to `/login`
