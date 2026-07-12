@@ -1,0 +1,32 @@
+{
+  "name": "promptnest",
+  "version": "0.1.0",
+  "description": "Capture the prompts you type inside AI agents and reuse them locally by name. Local markdown files, no server, no account.",
+  "type": "module",
+  "bin": {
+    "promptnest": "bin/pn.js",
+    "pn": "bin/pn.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "prompt",
+    "prompts",
+    "ai",
+    "claude-code",
+    "cursor",
+    "codex",
+    "cli",
+    "mcp"
+  ],
+  "license": "MIT"
+}
