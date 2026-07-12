@@ -1,0 +1,9 @@
+{
+  "name": "promptnest",
+  "version": "0.1.0",
+  "description": "Capture and reuse your AI prompts locally — save, search, and template prompts by name from the terminal or inside your agent. Ships the PromptNest CLI, the /pn skill, /promptsave & /promptnest commands, and an optional prompt-capture hook.",
+  "author": { "name": "Hariharan" },
+  "homepage": "https://github.com/hariharan68/promptnest",
+  "license": "MIT",
+  "keywords": ["prompts", "prompt-library", "cli", "productivity", "claude-code"]
+}
