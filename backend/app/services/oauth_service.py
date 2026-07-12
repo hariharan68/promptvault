@@ -1,12 +1,14 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 import base64
 import hashlib
 import re
 import secrets
+import uuid
 from urllib.parse import urlencode
 
 import httpx
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -20,10 +22,15 @@ from app.core.config import (
 )
 from app.core.normalize import normalize_email
 from app.models.oauth_account import OAuthAccount
+from app.models.oauth_transaction import OAuthTransaction
 from app.models.user import User
 
 
 SUPPORTED_PROVIDERS = {"google", "github"}
+
+# An authorization round-trip through the provider should complete in seconds;
+# 10 minutes is a generous ceiling that still bounds replay/CSRF exposure.
+OAUTH_TXN_TTL_MINUTES = 10
 
 
 class OAuthError(Exception):
@@ -92,6 +99,64 @@ def create_authorization_request(provider: str) -> tuple[str, str, str]:
             "state": state,
         }
     return f"{endpoint}?{urlencode(params)}", state, verifier
+
+
+def start_oauth_transaction(db: Session, provider: str, remember_me: bool) -> tuple[str, uuid.UUID]:
+    """Build the authorization URL and persist its transaction. Returns (url, txn_id).
+
+    The state and PKCE verifier live server-side now, not in cookies — so the
+    callback can verify state against the table and consume the row once.
+    """
+    authorization_url, state, verifier = create_authorization_request(provider)
+    now = datetime.utcnow()
+    txn = OAuthTransaction(
+        provider=provider,
+        state=state,
+        pkce_verifier=verifier,
+        remember_me=remember_me,
+        expires_at=now + timedelta(minutes=OAUTH_TXN_TTL_MINUTES),
+    )
+    db.add(txn)
+    db.commit()
+    return authorization_url, txn.txn_id
+
+
+@dataclass(frozen=True)
+class ConsumedTransaction:
+    provider: str
+    pkce_verifier: str
+    remember_me: bool
+
+
+def consume_oauth_transaction(db: Session, provider: str, state: str) -> ConsumedTransaction:
+    """Atomically claim the transaction for `state`, exactly once.
+
+    The single UPDATE is the lock: it matches only an unconsumed, unexpired row
+    for this provider and stamps `consumed_at` in the same statement. A second
+    callback with the same state (replay), an expired row, or a forged/unknown
+    state all return no row → uniform error. Lookup is keyed on `state` (not the
+    cookie txn_id) so a second tab overwriting the cookie can't break the first
+    tab's callback — state is a 256-bit single-use secret, which is the guarantee.
+    """
+    now = datetime.utcnow()
+    row = db.execute(
+        text(
+            """
+            UPDATE oauth_transactions
+               SET consumed_at = :now
+             WHERE state = :state
+               AND provider = :provider
+               AND consumed_at IS NULL
+               AND expires_at > :now
+            RETURNING provider, pkce_verifier, remember_me
+            """
+        ),
+        {"now": now, "state": state, "provider": provider},
+    ).first()
+    db.commit()
+    if row is None:
+        raise OAuthError("invalid_oauth_transaction", "This sign-in link has expired or was already used")
+    return ConsumedTransaction(provider=row.provider, pkce_verifier=row.pkce_verifier, remember_me=row.remember_me)
 
 
 async def fetch_oauth_profile(provider: str, code: str, verifier: str) -> OAuthProfile:

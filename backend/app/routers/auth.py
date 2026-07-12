@@ -1,5 +1,4 @@
 from datetime import datetime
-import hmac
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
@@ -33,9 +32,10 @@ from app.models.prompt import Prompt
 from app.services.oauth_service import (
     OAuthError,
     SUPPORTED_PROVIDERS,
-    create_authorization_request,
+    consume_oauth_transaction,
     fetch_oauth_profile,
     login_or_create_oauth_user,
+    start_oauth_transaction,
 )
 
 router = APIRouter(
@@ -65,6 +65,8 @@ def _frontend_oauth_redirect(error: str | None = None) -> RedirectResponse:
     query = urlencode({"error": error}) if error else "status=success"
     response = RedirectResponse(f"{OAUTH_FRONTEND_CALLBACK_URL}?{query}", status_code=302)
     response.headers["Cache-Control"] = "no-store"
+    # Clear the legacy client-side OAuth cookies (state/pkce/remember) in case a
+    # user is mid-flight across the deploy that moved this state server-side.
     response.delete_cookie("oauth_state", path=OAUTH_COOKIE_PATH)
     response.delete_cookie("oauth_pkce", path=OAUTH_COOKIE_PATH)
     response.delete_cookie("oauth_remember", path=OAUTH_COOKIE_PATH)
@@ -135,29 +137,19 @@ def refresh(request: Request, response: Response, refresh_token: str | None = Co
 
 
 @router.get("/oauth/{provider}/start")
-def oauth_start(provider: str, request: Request, remember_me: bool = Query(default=False)):
+def oauth_start(provider: str, request: Request, remember_me: bool = Query(default=False), db: Session = Depends(get_db)):
     enforce_rate_limit(request, f"oauth_start:{provider}", 20)
     if provider not in SUPPORTED_PROVIDERS:
         raise HTTPException(status_code=404, detail="Unsupported OAuth provider")
     try:
-        authorization_url, state_token, verifier = create_authorization_request(provider)
+        # State, PKCE verifier, and the remember-me choice are persisted in a
+        # server-side transaction row rather than round-tripped through cookies.
+        authorization_url, _txn_id = start_oauth_transaction(db, provider, remember_me)
     except OAuthError as exc:
         return _frontend_oauth_redirect(exc.code)
 
     response = RedirectResponse(authorization_url, status_code=302)
     response.headers["Cache-Control"] = "no-store"
-    cookie_options = {
-        "httponly": True,
-        "secure": COOKIE_SECURE,
-        "samesite": "lax",
-        "max_age": 600,
-        "path": OAUTH_COOKIE_PATH,
-    }
-    response.set_cookie("oauth_state", state_token, **cookie_options)
-    response.set_cookie("oauth_pkce", verifier, **cookie_options)
-    # Carry the remember-me choice through the round-trip so the callback can pick
-    # the session policy (the OAuth provider round-trip has no other place for it).
-    response.set_cookie("oauth_remember", "1" if remember_me else "0", **cookie_options)
     return response
 
 
@@ -168,9 +160,6 @@ async def oauth_callback(
     code: str | None = Query(default=None),
     state_token: str | None = Query(default=None, alias="state"),
     provider_error: str | None = Query(default=None, alias="error"),
-    oauth_state: str | None = Cookie(default=None),
-    oauth_pkce: str | None = Cookie(default=None),
-    oauth_remember: str | None = Cookie(default=None),
     db: Session = Depends(get_db),
 ):
     enforce_rate_limit(request, f"oauth_callback:{provider}", 10)
@@ -178,22 +167,22 @@ async def oauth_callback(
         return _frontend_oauth_redirect("unsupported_provider")
     if provider_error:
         return _frontend_oauth_redirect("authorization_cancelled")
-    if not code or not state_token or not oauth_state or not oauth_pkce:
+    if not code or not state_token:
         return _frontend_oauth_redirect("invalid_oauth_response")
-    if not hmac.compare_digest(state_token, oauth_state):
-        return _frontend_oauth_redirect("invalid_oauth_state")
 
-    remember_me = oauth_remember == "1"
-    session_policy = "persistent" if remember_me else "ephemeral"
     try:
-        profile = await fetch_oauth_profile(provider, code, oauth_pkce)
+        # Atomic single-use claim: rejects replay, expiry, and forged/unknown
+        # state in one statement. verifier + remember_me come from the row.
+        txn = consume_oauth_transaction(db, provider, state_token)
+        session_policy = "persistent" if txn.remember_me else "ephemeral"
+        profile = await fetch_oauth_profile(provider, code, txn.pkce_verifier)
         user = login_or_create_oauth_user(db, profile)
         refresh_token, _family_id = create_refresh_token(db, user, session_policy)
     except OAuthError as exc:
         return _frontend_oauth_redirect(exc.code)
 
     response = _frontend_oauth_redirect()
-    _set_refresh_cookie(response, refresh_token, persistent=remember_me)
+    _set_refresh_cookie(response, refresh_token, persistent=txn.remember_me)
     return response
 
 

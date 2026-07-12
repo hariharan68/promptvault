@@ -1,15 +1,11 @@
-"""§8 items still pending. #7 (race hardening) and #8 (email case) are implemented
-by step 7 and now live in test_email_and_races.py. #5 (OAuth transaction replay)
-and #6 (linking challenge) remain scheduled for steps 5–6 and are recorded here as
-skips so the release-gate matrix stays complete.
+"""§8 items still pending. #5 (OAuth transaction replay) is now covered by
+test_oauth_transactions.py and #7/#8 by test_email_and_races.py. Only #6 (the
+hardened linking challenge) remains — it needs email-send capability (step 6,
+§5.4) and is recorded here as a skip so the release-gate matrix stays complete.
 """
 import pytest
 
-pytestmark = pytest.mark.skip(reason="Depends on redesign steps 5–6 (OAuth transactions / linking challenge) — not implemented yet")
-
-
-def test_oauth_callback_replay_returns_401():
-    """§8 #5 — needs the server-side oauth_transactions table (step 5, §5.1)."""
+pytestmark = pytest.mark.skip(reason="Depends on redesign step 6 (linking challenge — needs email infra) — not implemented yet")
 
 
 def test_oauth_email_matching_password_account_requires_challenge():
