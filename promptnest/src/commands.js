@@ -230,8 +230,17 @@ export async function get(ctx) {
   const rec = findById(ctx, ctx.positionals[0]);
   if (!rec) return fail(ctx, 2, `prompt not found: ${ctx.positionals[0] || "(none)"}`);
   const { meta, body } = prompts.readFileRecord(rec.file);
-  if (ctx.flags.json) return void console.log(JSON.stringify({ ...meta, body }, null, 2));
+  if (ctx.flags.json) return void console.log(JSON.stringify({ ...meta, file: rec.file, body }, null, 2));
   console.log(body);
+}
+
+// ---- path -------------------------------------------------------------
+// Print the absolute .md file path for a prompt (handy for editors/scripts).
+export async function pathCmd(ctx) {
+  const rec = findById(ctx, ctx.positionals[0]);
+  if (!rec) return fail(ctx, 2, `prompt not found: ${ctx.positionals[0] || "(none)"}`);
+  if (ctx.flags.json) return void console.log(JSON.stringify({ id: rec.id, path: rec.file }, null, 2));
+  console.log(rec.file);
 }
 
 // ---- use --------------------------------------------------------------
@@ -325,6 +334,7 @@ Commands:
   list [-g group] [--keyword k]      list saved prompts
   search "<query>"           search saved prompts
   get <id>                   print one prompt
+  path <id>                  print the prompt's .md file path
   use <id> [--var k=v ...]   fill {{vars}} and print
   count                      history depth + saved count
   open                       open the vault folder

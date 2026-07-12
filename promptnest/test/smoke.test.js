@@ -126,6 +126,36 @@ test("use fills variables and reports missing", () => {
   assert.equal(rec.uses, 1);
 });
 
+test("path prints the prompt's .md file and get --json includes it", () => {
+  const dir = makeVault();
+  const saved = JSON.parse(pn(dir, ["save", "--text", "hi", "--title", "P", "--group", "g", "--json"]));
+  const expected = path.join(dir, "prompts", "g", saved.saved.id + ".md");
+
+  const printed = pn(dir, ["path", saved.saved.id]).trim();
+  assert.equal(printed, expected);
+  assert.ok(fs.existsSync(printed), "printed path exists");
+
+  const asJson = JSON.parse(pn(dir, ["path", saved.saved.id, "--json"]));
+  assert.equal(asJson.path, expected);
+
+  const got = JSON.parse(pn(dir, ["get", saved.saved.id, "--json"]));
+  assert.equal(got.file, expected);
+});
+
+test("path with an unknown id fails with code 2", () => {
+  const dir = makeVault();
+  let code = 0;
+  try {
+    execFileSync(process.execPath, [BIN, "path", "nope"], {
+      env: { ...process.env, PROMPTNEST_DIR: dir },
+      encoding: "utf8",
+    });
+  } catch (e) {
+    code = e.status;
+  }
+  assert.equal(code, 2);
+});
+
 test("search finds by title and keyword", () => {
   const dir = makeVault();
   pn(dir, ["save", "--text", "commit format", "--title", "Conventional commit", "--keywords", "git,commit", "--group", "commits"]);

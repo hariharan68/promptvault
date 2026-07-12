@@ -92,6 +92,7 @@ const DISPATCH = {
   list: commands.list,
   search: commands.search,
   get: commands.get,
+  path: commands.pathCmd,
   use: commands.use,
   count: commands.count,
   open: commands.open,
