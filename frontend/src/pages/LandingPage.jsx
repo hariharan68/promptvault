@@ -19,6 +19,7 @@ import {
   Code,
   ArrowsClockwise,
   ChatTeardrop,
+  TerminalWindow,
 } from "@phosphor-icons/react";
 
 /* ─── Mock data for hero UI preview ──────────────────────────────────────── */
@@ -107,6 +108,82 @@ const USE_CASES = [
     stack: ["OpenAI API", "Anthropic API", "Ollama"],
   },
 ];
+
+/* ─── CLI features ────────────────────────────────────────────────────────── */
+const CLI_FEATURES = [
+  {
+    Icon: DownloadSimple,
+    title: "One-command install",
+    desc: "npx promptnest init sets up your local vault and installs the slash commands — no build step, no account.",
+  },
+  {
+    Icon: Robot,
+    title: "Agent skills built in",
+    desc: "Use /pn, /promptsave, and /promptnest right inside Claude Code to save and reuse prompts without leaving the chat.",
+  },
+  {
+    Icon: BracketsCurly,
+    title: "{{variable}} templates",
+    desc: "pn use <id> --var key=value fills placeholders, so one saved prompt covers every language, tone, or context.",
+  },
+  {
+    Icon: MagnifyingGlass,
+    title: "Instant local search",
+    desc: "pn search and pn list surface any saved prompt from the terminal in milliseconds — plain markdown under ~/.promptnest.",
+  },
+];
+
+/* ─── Terminal mockup for the CLI section ────────────────────────────────── */
+function CliMockup() {
+  const line = (prompt, cmd, out) => ({ prompt, cmd, out });
+  const LINES = [
+    line("$", "npx promptnest init", "✔ vault ready at ~/.promptnest  ·  installed /promptsave, /promptnest"),
+    line("$", 'pn save "Review {{lang}} code" -t "Lang review" -g code-review', "saved ~/.promptnest/prompts/code-review/lang-review.md"),
+    line("$", "pn use lang-review --var lang=Python", "Review Python code"),
+  ];
+  return (
+    <div className="relative w-full max-w-[520px] mx-auto">
+      <div className="absolute -inset-6 bg-[#714B67]/18 rounded-3xl blur-3xl pointer-events-none" />
+      <div className="relative rounded-2xl overflow-hidden border border-white/10
+        shadow-[0_32px_80px_-16px_rgba(0,0,0,0.75)]">
+        {/* macOS-style chrome */}
+        <div className="bg-[#252733] px-4 py-3 flex items-center gap-3 border-b border-white/6">
+          <div className="flex gap-1.5 flex-shrink-0">
+            <span className="w-3 h-3 rounded-full bg-[#FF5F57]" />
+            <span className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+            <span className="w-3 h-3 rounded-full bg-[#28CA41]" />
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-white/30 font-mono">
+            <TerminalWindow size={12} weight="bold" />
+            <span>promptnest — zsh</span>
+          </div>
+        </div>
+        {/* Terminal body */}
+        <div className="bg-[#12131A] px-4 py-4 flex flex-col gap-3 font-mono text-[12px] leading-relaxed">
+          {LINES.map((l, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 6 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15 + i * 0.25, duration: 0.4 }}
+            >
+              <div className="flex gap-2">
+                <span className="text-[#28CA41] flex-shrink-0">{l.prompt}</span>
+                <span className="text-white/90 break-all">{l.cmd}</span>
+              </div>
+              <div className="text-[#8A8FA3] pl-4 break-all">{l.out}</div>
+            </motion.div>
+          ))}
+          <div className="flex gap-2 items-center">
+            <span className="text-[#28CA41]">$</span>
+            <span className="w-2 h-4 bg-white/70 animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ─── Scroll-triggered fade-in helper ────────────────────────────────────── */
 function Reveal({ children, delay = 0, className = "" }) {
@@ -216,6 +293,7 @@ function ProductMockup() {
 /* ─── Main component ──────────────────────────────────────────────────────── */
 const NAV_ITEMS = [
   { to: "#features", label: "Features" },
+  { to: "#cli", label: "CLI" },
   { to: "#how-it-works", label: "How it works" },
   { to: "/docs", label: "Docs", route: true },
   { to: "#pricing", label: "Pricing" },
@@ -581,6 +659,75 @@ export default function LandingPage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── CLI ─────────────────────────────────────────────────────────── */}
+      <section id="cli" className="py-20 bg-[#1A1B22] scroll-mt-14 relative overflow-hidden">
+        <div className="absolute top-1/4 right-1/5 w-[420px] h-[420px]
+          bg-[#714B67]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative max-w-6xl mx-auto px-5 md:px-8">
+          <Reveal className="text-center mb-14">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#C4A0BA] mb-3">
+              Command line
+            </p>
+            <h2 className="font-serif text-3xl md:text-4xl text-white mb-4">
+              Prefer the terminal? Meet the CLI.
+            </h2>
+            <p className="text-[#9CA3AF] text-[17px] max-w-2xl mx-auto leading-relaxed">
+              PromptNest also ships as a local-first CLI and a set of AI-agent skills.
+              Capture and reuse prompts from your shell or straight inside Claude Code —
+              stored as plain markdown under <span className="font-mono text-[#C4A0BA]">~/.promptnest</span>.
+            </p>
+          </Reveal>
+
+          {/* One-line install */}
+          <Reveal className="max-w-2xl mx-auto mb-12">
+            <div className="flex items-center gap-3 bg-[#12131A] border border-white/10
+              rounded-xl px-4 py-3 font-mono text-[13px]">
+              <span className="text-[#28CA41] flex-shrink-0">$</span>
+              <code className="text-white/90 flex-1 truncate">npx promptnest init</code>
+              <span className="text-[10px] text-white/40 uppercase tracking-widest flex-shrink-0
+                hidden sm:inline">Installs the skills</span>
+            </div>
+            <p className="text-center text-[12px] text-[#6B7280] mt-3">
+              Sets up your vault and installs the <span className="font-mono text-[#9CA3AF]">/pn</span>,{" "}
+              <span className="font-mono text-[#9CA3AF]">/promptsave</span>, and{" "}
+              <span className="font-mono text-[#9CA3AF]">/promptnest</span> agent skills.
+            </p>
+          </Reveal>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left: terminal mockup */}
+            <Reveal>
+              <CliMockup />
+            </Reveal>
+
+            {/* Right: feature list */}
+            <Reveal delay={0.1}>
+              <div className="flex flex-col gap-5">
+                {CLI_FEATURES.map(({ Icon, title, desc }) => (
+                  <div key={title} className="flex gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#714B67]/15 border border-[#714B67]/30
+                      flex items-center justify-center flex-shrink-0">
+                      <Icon size={19} weight="duotone" className="text-[#C4A0BA]" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white mb-1 text-[15px]">{title}</h3>
+                      <p className="text-sm text-[#9CA3AF] leading-relaxed">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+
+          <Reveal className="text-center mt-11">
+            <p className="text-[#3A3D50] text-[11px] font-mono tracking-wide">
+              Works with Claude Code · Cursor · Codex · any terminal · Node.js 18+
+            </p>
+          </Reveal>
         </div>
       </section>
 
