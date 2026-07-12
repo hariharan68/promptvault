@@ -724,6 +724,20 @@ export default function LandingPage() {
           </div>
 
           <Reveal className="text-center mt-11">
+            <div className="flex flex-wrap justify-center gap-3 mb-6">
+              <Link to="/cli"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full
+                  bg-[#714B67] hover:bg-[#5A3A52] text-white text-sm font-medium transition-all
+                  shadow-[0_4px_16px_-4px_rgba(113,75,103,0.55)]">
+                Explore the CLI <ArrowRight size={14} weight="bold" />
+              </Link>
+              <Link to="/docs?p=cli-overview"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full
+                  border border-white/15 hover:border-white/30 text-white/65 hover:text-white
+                  text-sm font-medium transition-all">
+                Read the CLI docs
+              </Link>
+            </div>
             <p className="text-[#3A3D50] text-[11px] font-mono tracking-wide">
               Works with Claude Code · Cursor · Codex · any terminal · Node.js 18+
             </p>

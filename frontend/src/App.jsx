@@ -6,6 +6,7 @@ import { ToastProvider } from "./components/common/Toast.jsx";
 import ProtectedRoute from "./components/common/ProtectedRoute.jsx";
 import AppLayout from "./layouts/AppLayout.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import CliPage from "./pages/CliPage.jsx";
 import DocsPage from "./pages/DocsPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
@@ -38,6 +39,7 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/" element={<HomeGate />} />
+            <Route path="/cli" element={<CliPage />} />
             <Route path="/docs" element={<DocsPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
