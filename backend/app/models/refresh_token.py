@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import Column, DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import INET, UUID
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -30,5 +30,11 @@ class RefreshToken(Base):
     replaced_at = Column(DateTime, nullable=True)   # set when rotated
     revoked_at = Column(DateTime, nullable=True)    # set on logout / security event
     revoke_reason = Column(Text, nullable=True)     # 'logout','reuse_detected','idle_timeout',...
+
+    # Session metadata for the "your devices" UI, captured at login and inherited
+    # by every rotated token in the family so the live tip is self-describing.
+    device_label = Column(Text, nullable=True)      # e.g. "Chrome on Windows"
+    ip_created = Column(INET, nullable=True)
+    user_agent = Column(Text, nullable=True)
 
     created_at = Column(DateTime, nullable=False, server_default=func.now())

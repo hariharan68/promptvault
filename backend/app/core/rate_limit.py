@@ -20,6 +20,11 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def client_ip(request: Request) -> str:
+    """Public accessor for the proxy-aware client IP (also used for session metadata)."""
+    return _client_ip(request)
+
+
 def enforce_rate_limit(
     request: Request,
     action: str,

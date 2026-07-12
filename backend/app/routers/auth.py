@@ -1,20 +1,22 @@
 from datetime import datetime
+import uuid
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.core.csrf import require_trusted_origin
 from app.core.db_errors import is_unique_violation
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_session_id
 from app.database import get_db
 from app.schemas.user import UserCreate, UserResponse
 from app.models.user import User
 from app.schemas.auth import LoginRequest, TokenResponse, RegisterResponse
 from app.schemas.product import ChangePasswordRequest
 from app.core.config import COOKIE_SECURE, OAUTH_FRONTEND_CALLBACK_URL, REFRESH_TOKEN_EXPIRE_DAYS
-from app.core.rate_limit import enforce_rate_limit
+from app.core.rate_limit import enforce_rate_limit, client_ip
 from app.services.auth_service import (
     authenticate_user,
     create_login_token,
@@ -113,7 +115,11 @@ def login(request: Request, response: Response, login_data: LoginRequest, db: Se
         )
 
     session_policy = "persistent" if login_data.remember_me else "ephemeral"
-    refresh_token, family_id = create_refresh_token(db, user, session_policy)
+    refresh_token, family_id = create_refresh_token(
+        db, user, session_policy,
+        ip_created=client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     access_token = create_login_token(user, sid=family_id)
     _set_refresh_cookie(response, refresh_token, persistent=login_data.remember_me)
 
@@ -177,7 +183,11 @@ async def oauth_callback(
         session_policy = "persistent" if txn.remember_me else "ephemeral"
         profile = await fetch_oauth_profile(provider, code, txn.pkce_verifier)
         user = login_or_create_oauth_user(db, profile)
-        refresh_token, _family_id = create_refresh_token(db, user, session_policy)
+        refresh_token, _family_id = create_refresh_token(
+            db, user, session_policy,
+            ip_created=client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
     except OAuthError as exc:
         return _frontend_oauth_redirect(exc.code)
 
@@ -204,13 +214,62 @@ def update_password(payload: ChangePasswordRequest, db: Session = Depends(get_db
 
 
 @router.get("/sessions")
-def list_sessions(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    sessions = db.query(RefreshToken).filter(
+def list_sessions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    current_sid: str | None = Depends(get_current_session_id),
+):
+    now = datetime.utcnow()
+    # One entry per live family: the tip is the only token with neither
+    # replaced_at nor revoked_at set, and it carries the inherited device metadata.
+    tips = db.query(RefreshToken).filter(
         RefreshToken.user_id == current_user.id,
         RefreshToken.revoked_at.is_(None),
-        RefreshToken.expires_at > datetime.utcnow(),
-    ).order_by(RefreshToken.created_at.desc()).all()
-    return {"data": [{"id": str(session.id), "created_at": session.created_at, "expires_at": session.expires_at} for session in sessions], "meta": {"total": len(sessions)}}
+        RefreshToken.replaced_at.is_(None),
+        RefreshToken.expires_at > now,
+    ).all()
+
+    # The family's original sign-in time is the earliest created_at in the family.
+    first_seen = dict(
+        db.query(RefreshToken.family_id, func.min(RefreshToken.created_at))
+        .filter(RefreshToken.user_id == current_user.id)
+        .group_by(RefreshToken.family_id)
+        .all()
+    )
+
+    data = [
+        {
+            "family_id": str(tip.family_id),
+            "current": str(tip.family_id) == current_sid,
+            "device_label": tip.device_label,
+            "ip": str(tip.ip_created) if tip.ip_created else None,
+            "session_policy": tip.session_policy,
+            "created_at": first_seen.get(tip.family_id, tip.created_at),
+            "last_used_at": tip.last_used_at,
+            "expires_at": tip.expires_at,
+        }
+        for tip in tips
+    ]
+    # Current device first, then most-recently-used.
+    data.sort(key=lambda s: (0 if s["current"] else 1, -s["last_used_at"].timestamp()))
+    return {"data": data, "meta": {"total": len(data)}}
+
+
+@router.delete("/sessions/{family_id}", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_session(
+    family_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Scope to the caller's own families so one user can't revoke another's device.
+    revoked = db.query(RefreshToken).filter(
+        RefreshToken.user_id == current_user.id,
+        RefreshToken.family_id == family_id,
+        RefreshToken.revoked_at.is_(None),
+    ).update({RefreshToken.revoked_at: datetime.utcnow(), RefreshToken.revoke_reason: "user_revoked"})
+    db.commit()
+    if not revoked:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
 
 @router.post("/sessions/revoke-all")

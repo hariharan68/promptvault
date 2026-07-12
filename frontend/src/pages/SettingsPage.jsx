@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import { Sun, Moon } from "@phosphor-icons/react";
-import { changePassword, deleteAccount, exportAccount, revokeAllSessions } from "../api/productApi.js";
+import { changePassword, deleteAccount, exportAccount, getSessions, revokeSession, revokeAllSessions } from "../api/productApi.js";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -10,6 +10,29 @@ export default function SettingsPage() {
   const { logout } = useAuth();
   const [passwords, setPasswords] = useState({ current_password: "", new_password: "" });
   const [message, setMessage] = useState("");
+  const [sessions, setSessions] = useState([]);
+
+  async function loadSessions() {
+    try {
+      const res = await getSessions();
+      setSessions(res.data?.data ?? []);
+    } catch {
+      setSessions([]);
+    }
+  }
+
+  useEffect(() => { loadSessions(); }, []);
+
+  async function handleRevokeSession(familyId) {
+    await revokeSession(familyId);
+    loadSessions();
+  }
+
+  function formatWhen(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+  }
 
   async function handlePassword(e) {
     e.preventDefault();
@@ -112,6 +135,39 @@ export default function SettingsPage() {
             <button onClick={async () => { if (window.confirm("Delete your account and all prompts?")) { await deleteAccount(); logout(); } }} className="rounded-full border border-red-200 px-4 py-2 text-xs font-medium text-red-500">Delete account</button>
           </div>
           {message && <p className="text-xs text-emerald-600">{message}</p>}
+        </div>
+      </section>
+
+      {/* Active sessions */}
+      <section className="bg-white dark:bg-[#252733] border border-[#E5E7EB] dark:border-[#363847] rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-[#E5E7EB] dark:border-[#363847]">
+          <h2 className="text-[13px] font-semibold uppercase tracking-[0.1em] text-[#374151] dark:text-[#9CA3AF]">Active sessions</h2>
+        </div>
+        <div className="px-6 py-5 flex flex-col gap-3">
+          {sessions.length === 0 ? (
+            <p className="text-xs text-[#6B7280]">No other active sessions.</p>
+          ) : (
+            sessions.map((s) => (
+              <div key={s.family_id} className="flex items-center justify-between gap-4 flex-wrap border-b border-[#F3F4F6] dark:border-[#2C2E3A] last:border-0 pb-3 last:pb-0">
+                <div>
+                  <p className="text-sm font-medium text-[#111827] dark:text-[#F1F2F6] flex items-center gap-2">
+                    {s.device_label || "Unknown device"}
+                    {s.current && (
+                      <span className="rounded-full bg-[#F3EEF3] dark:bg-[#3D2B3A] text-[#714B67] dark:text-[#C4A0BA] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">This device</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-[#6B7280] mt-0.5">
+                    Last active {formatWhen(s.last_used_at)}
+                    {s.ip ? ` · ${s.ip}` : ""}
+                    {s.session_policy === "ephemeral" ? " · temporary" : ""}
+                  </p>
+                </div>
+                {!s.current && (
+                  <button onClick={() => handleRevokeSession(s.family_id)} className="rounded-full border border-[#E5E7EB] dark:border-[#363847] px-4 py-2 text-xs font-medium">Revoke</button>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </section>
 

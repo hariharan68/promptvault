@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import hashlib
+import ipaddress
 import secrets
 import uuid
 
@@ -117,7 +118,55 @@ def revoke_family(db: Session, family_id, reason: str) -> int:
     return result.rowcount
 
 
-def create_refresh_token(db: Session, user: User, session_policy: str = "persistent") -> tuple[str, uuid.UUID]:
+def _valid_ip(value: str | None) -> str | None:
+    """Return `value` only if it parses as an IP address, else None.
+
+    The INET column rejects non-addresses, and request.client.host isn't always
+    one (e.g. "testclient" under the test harness, or a UNIX socket peer).
+    """
+    if not value:
+        return None
+    try:
+        ipaddress.ip_address(value)
+        return value
+    except ValueError:
+        return None
+
+
+def device_label_from_user_agent(user_agent: str | None) -> str | None:
+    """A short human label for the sessions UI, e.g. "Chrome on Windows".
+
+    Deliberately tiny — not a full UA parser. Order matters: Chrome/Edge UAs also
+    contain "Safari", so the more specific tokens are checked first.
+    """
+    if not user_agent:
+        return None
+    ua = user_agent.lower()
+    browser = next(
+        (label for needle, label in (
+            ("edg", "Edge"), ("opr", "Opera"), ("chrome", "Chrome"),
+            ("firefox", "Firefox"), ("safari", "Safari"),
+        ) if needle in ua),
+        "Browser",
+    )
+    os_name = next(
+        (label for needle, label in (
+            ("windows", "Windows"), ("mac os", "macOS"), ("android", "Android"),
+            ("iphone", "iOS"), ("ipad", "iOS"), ("linux", "Linux"),
+        ) if needle in ua),
+        None,
+    )
+    return f"{browser} on {os_name}" if os_name else browser
+
+
+def create_refresh_token(
+    db: Session,
+    user: User,
+    session_policy: str = "persistent",
+    *,
+    ip_created: str | None = None,
+    user_agent: str | None = None,
+) -> tuple[str, uuid.UUID]:
     """Start a new token family for a fresh login. Returns (raw_token, family_id)."""
     now = datetime.utcnow()
     raw_token = secrets.token_urlsafe(48)
@@ -130,6 +179,9 @@ def create_refresh_token(db: Session, user: User, session_policy: str = "persist
         session_policy=session_policy,
         expires_at=_expiry_for(session_policy, now),
         last_used_at=now,
+        device_label=device_label_from_user_agent(user_agent),
+        ip_created=_valid_ip(ip_created),
+        user_agent=user_agent,
     )
     db.add(token)
     db.commit()
@@ -170,7 +222,8 @@ def rotate_refresh_token(db: Session, raw_token: str):
                AND replaced_at IS NULL
                AND revoked_at  IS NULL
                AND expires_at  > :now
-            RETURNING id, user_id, family_id, session_policy, created_at, last_used_at, expires_at
+            RETURNING id, user_id, family_id, session_policy, created_at, last_used_at, expires_at,
+                      device_label, ip_created, user_agent
             """
         ),
         {"now": now, "h": token_hash},
@@ -218,6 +271,10 @@ def rotate_refresh_token(db: Session, raw_token: str):
         session_policy=claimed.session_policy,
         expires_at=successor_expiry,
         last_used_at=now,
+        # Inherit the family's device metadata so the live tip stays self-describing.
+        device_label=claimed.device_label,
+        ip_created=claimed.ip_created,
+        user_agent=claimed.user_agent,
     ))
     db.commit()
     return user, new_raw_token, claimed.family_id, claimed.session_policy

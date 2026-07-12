@@ -10,6 +10,7 @@ export const importPrompts = (data) => client.post("/prompts/import", data);
 export const exportPrompts = (format) => client.get("/prompts/export", { params: { format }, responseType: "blob" });
 export const changePassword = (data) => client.post("/auth/change-password", data);
 export const getSessions = () => client.get("/auth/sessions");
+export const revokeSession = (familyId) => client.delete(`/auth/sessions/${familyId}`);
 export const revokeAllSessions = () => client.post("/auth/sessions/revoke-all");
 export const exportAccount = () => client.get("/auth/account/export");
 export const deleteAccount = () => client.delete("/auth/account");

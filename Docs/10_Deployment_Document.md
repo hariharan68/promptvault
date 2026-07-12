@@ -408,3 +408,44 @@ curl -X POST https://api.yourdomain.com/api/v1/auth/register \
 curl https://yourdomain.com
 # Expected: HTML page with <title>PromptNest</title>
 ```
+
+---
+
+## Migration & Release Checklist (Codex #25)
+
+Run before every deploy that ships schema changes:
+
+1. **One head.** `alembic heads` must show exactly one revision. If it shows
+   more, merge them (`alembic merge`) before deploying.
+2. **Know the current state.** `alembic current` against the target database.
+3. **Back up** the database (or confirm the managed snapshot) before upgrading.
+4. **Upgrade.** `alembic upgrade head`.
+   - Note: the migration chain is *not* from-scratch — it assumes the base
+     `users`/`refresh_tokens` tables already exist (they were created by the
+     initial `Base.metadata.create_all`). A brand-new database must be
+     bootstrapped with the app's `create_all` once, then stamped
+     (`alembic stamp head`) before incremental migrations apply cleanly.
+   - `20260716_email_lower_unique` **aborts** if case-insensitive duplicate
+     emails exist. Resolve them by hand first:
+     `SELECT lower(email), count(*) FROM users GROUP BY 1 HAVING count(*) > 1;`
+5. **Model/schema drift.** `alembic revision --autogenerate` should produce an
+   empty migration (delete it). A non-empty diff means the models and the DB
+   have drifted.
+6. **Smoke test** login → refresh → logout against staging before tagging.
+
+### Scheduled jobs
+
+- **Token cleanup** (`uv run python -m app.jobs.token_cleanup`): nightly. Purges
+  refresh tokens revoked/expired > 30 days ago, sweeps expired OAuth
+  transactions, and logs a LEAK ALERT for any user with > 50 live sessions.
+
+### Product rename (PromptNest → PromptVault) — deferred, do as its own PR
+
+This is intentionally **not** bundled with functional changes. When executed:
+
+- Repo-wide code/doc string rename.
+- Rename the OAuth apps in the Google Cloud Console and GitHub OAuth App
+  settings, and update their redirect URIs.
+- Update `DATABASE_URL` database name and any deployment secrets in a
+  coordinated infra change (requires a DB rename or migration, not just a code
+  edit).
