@@ -40,8 +40,8 @@ Newer authenticated features documented in later sections / Swagger: **version h
 
 **Behavior:**
 1. User fills email + password and submits.
-2. Frontend calls `POST /api/v1/auth/login` with `{ email, password }`.
-3. On success (HTTP 200): token saved to `localStorage` as `access_token`. User state set. Redirect to `/dashboard`.
+2. Frontend calls `POST /api/v1/auth/login` with `{ email, password, remember_me }`.
+3. On success (HTTP 200): the access token is held **in memory only** and the refresh-token cookie is set by the server. User state set. Redirect to `/dashboard`.
 4. On failure: error message displayed inline below inputs (from `error.response.data.detail`).
 5. Button shows "Logging in..." during request, disabled to prevent double-submit.
 
@@ -347,18 +347,18 @@ Filters are reactive: changing any filter triggers `fetchPrompts()` via `useEffe
 
 ## 4. State Management
 
-### 4.1 Auth State (`AuthContext`)
+### 4.1 Auth State (`AuthContext` + `authState.js`)
 ```
 user: null | UserObject
 loading: boolean
-saveToken(token): void → localStorage.setItem("access_token", token)
-logout(): void → localStorage.removeItem + setUser(null)
+setToken(token, epoch): void → in-memory module variable (never persisted); epoch-guarded
+beginLogout(): void → bumps authEpoch, clears in-memory token, setUser(null)
 ```
 
 **Initial load sequence:**
-1. Check `localStorage` for `access_token`.
-2. If found: call `GET /auth/me` → set user.
-3. If not found or 401: set user to null.
+1. Call `POST /auth/refresh` (the refresh cookie is sent automatically).
+2. On 200: store the new access token in memory, `GET /auth/me` → set user.
+3. On 401 (no cookie / expired / revoked / idle-timeout): set user to null.
 4. Set `loading = false`.
 
 `ProtectedRoute` blocks render until `loading === false`. If `user === null`, renders `<Navigate to="/login" replace />`.

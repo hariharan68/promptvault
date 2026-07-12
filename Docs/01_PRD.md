@@ -70,9 +70,9 @@ PromptNest solves this by acting as a personal prompt library with a clean, fast
 | Feature | Detail |
 |---|---|
 | Register | Username + email + password. Duplicate username/email blocked. |
-| Login | Email + password. Returns JWT access token (30-minute expiry). |
+| Login | Email + password (+ "keep me signed in"). Returns a 5-minute in-memory JWT access token; a rotating HttpOnly refresh cookie renews it. |
 | Me | Returns current user profile from token. |
-| Auth persistence | Token stored in `localStorage`; auto-attached to every request via Axios interceptor. |
+| Auth persistence | Access token in memory only; the HttpOnly refresh cookie restores the session on app load via `POST /auth/refresh`. Auto-attached to every request via Axios interceptor. |
 | Session expiry | 401 responses automatically clear token and redirect to `/login`. |
 
 **Acceptance Criteria:**

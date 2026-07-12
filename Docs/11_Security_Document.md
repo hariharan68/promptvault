@@ -35,7 +35,7 @@ The current build has been through a security hardening pass. Most items previou
 
 - `SECRET_KEY` is loaded from the environment (`required_env`) — **never hardcoded**.
 - In `ENVIRONMENT=production`, the app **refuses to start** if `SECRET_KEY` is a known placeholder or shorter than 32 characters.
-- Algorithm `HS256`, access-token lifetime 30 minutes (configurable).
+- Algorithm `HS256`, access-token lifetime **5 minutes** (configurable). The token lives in browser memory only (§2.5), so a short ceiling bounds the damage of an in-flight leak; the lifetime is emitted in the startup log so drift between doc and deployment is visible.
 
 **JWT payload:**
 ```json
@@ -43,15 +43,18 @@ The current build has been through a security hardening pass. Most items previou
   "sub": "<user-uuid>",
   "email": "user@example.com",
   "ver": 0,
+  "sid": "<refresh-family-uuid>",
+  "jti": "<random>",
   "iat": 1720521600,
   "nbf": 1720521600,
-  "exp": 1720523400
+  "exp": 1720521900
 }
 ```
 
 - `sub` is the user's UUID (stable identifier).
 - `iat` / `nbf` / `exp` are all set; jose validates `nbf`/`exp` on decode.
 - `ver` is the user's **token version** — see §2.4.
+- `sid` ties the token to the refresh-token family that minted it (per-device revocation + the sessions UI); `jti` future-proofs an optional denylist.
 
 **Status:** ✅ Implemented (env-based secret, prod guard, full claim set).
 
@@ -62,11 +65,13 @@ The current build has been through a security hardening pass. Most items previou
 **Implementation:** `app/services/auth_service.py`, `app/routers/auth.py`
 
 - Refresh tokens are opaque random strings (`secrets.token_urlsafe(48)`), **stored SHA-256-hashed** in the `refresh_tokens` table — a database leak never exposes usable tokens.
-- Delivered as an **HttpOnly** cookie, `SameSite=Lax`, `Secure=COOKIE_SECURE`, scoped to path `/api/v1/auth`, 30-day lifetime.
-- **Rotate-on-use:** every `/auth/refresh` revokes the old token and issues a new one. The frontend funnels all refreshes through a single in-flight request so concurrent refreshes never race the rotating token.
-- Revoked on logout, password change, and "sign out everywhere".
+- Delivered as an **HttpOnly** cookie, `SameSite=Lax`, `Secure=COOKIE_SECURE`, scoped to path `/api/v1/auth`.
+- **Families + atomic rotation:** every token belongs to a `family_id` (the chain from one login). `/auth/refresh` claims and rotates a token in a single atomic `UPDATE … RETURNING` — the `WHERE` clause is the lock, so concurrent refreshes cannot both win.
+- **Reuse detection:** presenting an already-rotated token (outside a ~10s multi-tab grace window) revokes the **entire family** and logs a `security_events` row — turning refresh-token theft from a silent 30-day compromise into a self-extinguishing, audited incident.
+- **Server-enforced session policy** (chosen by `remember_me` at login, inherited by the family): *persistent* → 30-day sliding cookie; *ephemeral* → session cookie with a server-side 30-min idle timeout + 12h absolute cap. The server clock — not a browser session cookie — is the authority, so browser "restore previous tabs" cannot defeat "sign me out when I leave".
+- Revoked on logout (whole family), password change, "sign out everywhere", per-device revoke, and reuse/idle security events.
 
-**Status:** ✅ Implemented.
+**Status:** ✅ Implemented (migration `20260715_refresh_families`).
 
 ---
 
@@ -87,10 +92,35 @@ if token_version is None or token_version != user.token_version:
 
 ### 2.5 Token Storage & Transport
 
-- **Access token:** browser `localStorage`, sent as `Authorization: Bearer <token>` (never in URLs).
+- **Access token:** **browser memory only** (a module variable), sent as `Authorization: Bearer <token>` (never in URLs, never `localStorage`/`sessionStorage`). On every app load the frontend calls `POST /auth/refresh`; a valid cookie resumes the session invisibly, otherwise the login page shows.
 - **Refresh token:** HttpOnly cookie (not readable by JavaScript).
+- An **auth-epoch** guard on the frontend drops any in-flight refresh write-back that completes after a logout, so a stale response can't resurrect a signed-out session.
 
-**Residual risk:** the access token in `localStorage` is readable by any JavaScript, so an XSS bug could exfiltrate it. This is mitigated by (a) the strict app-wide CSP (§6.4), and (b) token-version revocation — a stolen token can be killed via "sign out everywhere". Moving the access token to an HttpOnly cookie + CSRF tokens is the recommended future hardening.
+**Residual risk:** an in-flight access token could still be exfiltrated by XSS, but the exposure is bounded to ≤5 minutes *and* the attacker must also beat the `token_version` check. Keeping the token out of persistent storage removes the durable XSS-exfiltration surface that `localStorage` previously created. A Redis `jti` denylist (payload already carries `jti`) is documented as optional future hardening.
+
+---
+
+### 2.5a CSRF on Cookie-Authenticated Endpoints
+
+`/auth/refresh` and `/auth/logout` are the only cookie-authenticated, state-changing endpoints. Both require an `Origin` (or `Referer`) whose `scheme://host:port` **exactly matches** a trusted origin (`CORS_ORIGINS`); a lookalike like `trusted.evil.com` is rejected, and a missing header is untrusted. `SameSite=Lax` remains the first line; this explicit check removes the dependency on SameSite semantics surviving future deployment changes.
+
+**Status:** ✅ Implemented (`app/core/csrf.py`).
+
+---
+
+### 2.5b OAuth Transaction Integrity
+
+OAuth `state` + PKCE verifier + `remember_me` live in a server-side `oauth_transactions` row (10-min TTL), not cookies. The callback claims the row with one atomic `UPDATE … SET consumed_at … RETURNING` keyed on the single-use `state`, so **replay, expiry, and forged/unknown state all fail uniformly**, and concurrent multi-tab logins each match their own row. Email from the provider is normalized and requires `email_verified` (Google) / a verified primary email (GitHub).
+
+**Status:** ✅ Implemented (migration `20260717_oauth_transactions`).
+
+---
+
+### 2.5c Email Normalization & Registration Races
+
+Email is normalized once (NFC + trim + lowercase) for registration, login, and OAuth, backed by a `lower(email)` unique index — so login is case-insensitive and duplicates cannot slip in by case. Registration keeps a friendly pre-check but treats the unique constraint as the authority: a concurrent duplicate INSERT is caught (`IntegrityError`) and returned as a uniform `409`, never a `500` and never revealing which field collided.
+
+**Status:** ✅ Implemented (migration `20260716_email_lower_unique`).
 
 ---
 
@@ -212,7 +242,7 @@ Swagger (`/docs`), ReDoc (`/redoc`), and the OpenAPI schema are gated by `ENABLE
 | 6 | No security headers | MEDIUM | ✅ Fixed |
 | 7 | No token revocation | MEDIUM | ✅ Fixed (refresh rotation + token_version) |
 | 8 | Swagger exposed in all envs | MEDIUM | ✅ Fixed (off in prod) |
-| 9 | JWT in `localStorage` (XSS) | MEDIUM | ⚠️ Mitigated; HttpOnly cookie = future work |
+| 9 | JWT in `localStorage` (XSS) | MEDIUM | ✅ Fixed — access token moved to memory only; refresh-on-load + auth-epoch guard |
 | 10 | Rate limiter in-memory / per-process | LOW | ⚠️ Fine for single instance; use Redis at scale |
 | 11 | No email verification for email signups | LOW | Open (OAuth requires verified email) |
 | 12 | Soft-deleted data never purged | LOW | Open (schedule a cleanup job) |
@@ -260,7 +290,7 @@ npm audit
 | Prompt content | `prompts.prompt_content` | User data | May contain sensitive text |
 | OAuth link | `oauth_accounts` | Personal | Provider id + email at link; provider tokens **not** stored |
 | Refresh sessions | `refresh_tokens` (hashed) | Sensitive | Rotating, revocable |
-| Access token | browser `localStorage` | Sensitive | 30-minute expiry, revocable via token_version |
+| Access token | browser memory only | Sensitive | 5-minute expiry, revocable via token_version |
 
 **Account deletion:** `DELETE /api/v1/auth/account` removes the account; related rows cascade. `GET /api/v1/auth/account/export` lets a user download their data first.
 
