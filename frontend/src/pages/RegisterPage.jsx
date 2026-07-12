@@ -110,9 +110,9 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input label="Username" value={form.username} onChange={(e) => set("username", e.target.value)} placeholder="your_username" required />
-            <Input label="Email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" required />
-            <Input label="Password" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="Min. 8 characters" required />
+            <Input light label="Username" value={form.username} onChange={(e) => set("username", e.target.value)} placeholder="your_username" required />
+            <Input light label="Email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" required />
+            <Input light label="Password" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="Min. 8 characters" required />
 
             {error && (
               <div className="flex items-center gap-2.5 text-sm text-red-500 bg-red-500/6 border border-red-500/20 rounded-xl px-3.5 py-2.5">

@@ -113,8 +113,8 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input label="Email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" required />
-            <Input label="Password" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="••••••••" required />
+            <Input light label="Email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" required />
+            <Input light label="Password" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="••••••••" required />
 
             <label className="flex items-center gap-2.5 text-sm text-[#6B7280] cursor-pointer select-none -mt-1">
               <input
