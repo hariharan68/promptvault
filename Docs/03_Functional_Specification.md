@@ -1,13 +1,25 @@
 # Functional Specification Document
 # PromptNest
 
-**Version:** 1.0  
-**Date:** 2026-07-09
+**Version:** 2.0  
+**Date:** 2026-07-11
 
 ---
 
 ## 1. Purpose
 This document describes the exact behavior of every feature in PromptNest — what each screen shows, what each action does, and what each API endpoint returns. It bridges the PRD (what we want) and the SRS (what we require) with the concrete behavior visible in the code.
+
+### Route map (current)
+
+| Route | Access | Purpose |
+|---|---|---|
+| `/` | Public | Marketing **Landing page** (redirects to `/dashboard` if signed in) |
+| `/docs` | Public | Product **Documentation** (three-pane) |
+| `/login`, `/register` | Public | Auth (email/password + Google/GitHub) |
+| `/oauth/callback` | Public | Completes the OAuth session |
+| `/dashboard`, `/prompts`, `/groups`, `/settings`, `/trash` | Protected | The app |
+
+Newer authenticated features documented in later sections / Swagger: **version history**, **Trash & restore**, **template variables**, **import/export**, and **OAuth sign-in**.
 
 ---
 
@@ -28,8 +40,8 @@ This document describes the exact behavior of every feature in PromptNest — wh
 
 **Behavior:**
 1. User fills email + password and submits.
-2. Frontend calls `POST /api/v1/auth/login` with `{ email, password }`.
-3. On success (HTTP 200): token saved to `localStorage` as `access_token`. User state set. Redirect to `/dashboard`.
+2. Frontend calls `POST /api/v1/auth/login` with `{ email, password, remember_me }`.
+3. On success (HTTP 200): the access token is held **in memory only** and the refresh-token cookie is set by the server. User state set. Redirect to `/dashboard`.
 4. On failure: error message displayed inline below inputs (from `error.response.data.detail`).
 5. Button shows "Logging in..." during request, disabled to prevent double-submit.
 
@@ -91,7 +103,7 @@ This document describes the exact behavior of every feature in PromptNest — wh
    - Each group is a NavLink: `/prompts?group_id=<uuid>`.
 4. **Footer:**
    - Current username displayed.
-   - "Logout" button: clears `localStorage` token, sets user to null, redirects to `/login`.
+   - "Logout" button: revokes the refresh token, clears the `localStorage` access token, sets user to null, and redirects to `/` (landing page).
 
 **Data:** Groups loaded once on mount via `GET /api/v1/groups/`.
 
@@ -335,18 +347,18 @@ Filters are reactive: changing any filter triggers `fetchPrompts()` via `useEffe
 
 ## 4. State Management
 
-### 4.1 Auth State (`AuthContext`)
+### 4.1 Auth State (`AuthContext` + `authState.js`)
 ```
 user: null | UserObject
 loading: boolean
-saveToken(token): void → localStorage.setItem("access_token", token)
-logout(): void → localStorage.removeItem + setUser(null)
+setToken(token, epoch): void → in-memory module variable (never persisted); epoch-guarded
+beginLogout(): void → bumps authEpoch, clears in-memory token, setUser(null)
 ```
 
 **Initial load sequence:**
-1. Check `localStorage` for `access_token`.
-2. If found: call `GET /auth/me` → set user.
-3. If not found or 401: set user to null.
+1. Call `POST /auth/refresh` (the refresh cookie is sent automatically).
+2. On 200: store the new access token in memory, `GET /auth/me` → set user.
+3. On 401 (no cookie / expired / revoked / idle-timeout): set user to null.
 4. Set `loading = false`.
 
 `ProtectedRoute` blocks render until `loading === false`. If `user === null`, renders `<Navigate to="/login" replace />`.

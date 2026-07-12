@@ -10,12 +10,14 @@ dist/
 build/
 eggs/
 parts/
+authredesignimplementation.md
 var/
 sdist/
 develop-eggs/
 .installed.cfg
 lib/
 lib64/
+security_tests
 
 # Virtual environments
 venv/
@@ -44,6 +46,10 @@ DESIGN.MD
 skills-lock.json
 .claude
 .agents
+
+# graphify skill generated cache — never ship
+graphify-out/
+**/graphify-out/
 
 
 # ── Node / Frontend ───────────────────────────────────────────────────────────

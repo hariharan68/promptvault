@@ -4,7 +4,7 @@
 **Version:** 1.0  
 **Base URL:** `http://127.0.0.1:8000/api/v1`  
 **Swagger UI:** `http://127.0.0.1:8000/docs`  
-**Authentication:** Bearer token (JWT, HS256, 30-minute expiry)
+**Authentication:** Bearer token (JWT, HS256, 5-minute expiry, held in browser memory only). A rotating refresh token in an HttpOnly cookie silently renews it via `POST /auth/refresh`.
 
 All protected endpoints require the header:
 ```
@@ -29,9 +29,9 @@ Register a new user account.
 
 | Field | Type | Required | Constraint |
 |---|---|---|---|
-| username | string | Yes | Max 50 chars, unique |
+| username | string | Yes | 3–50 chars, `[A-Za-z0-9_]`, unique |
 | email | string | Yes | Valid email, unique |
-| password | string | Yes | Max 72 bytes |
+| password | string | Yes | 8–72 characters |
 
 **Response 201:**
 ```json
@@ -45,27 +45,35 @@ Register a new user account.
 }
 ```
 
+Email is normalized (trimmed, lowercased, NFC) and unique **case-insensitively** (`User@x.com` and `user@x.com` collide).
+
 **Error Responses:**
 | Status | Detail |
 |---|---|
-| 400 | `"Email already registered"` |
-| 400 | `"Username already registered"` |
+| 409 | `"That email or username is already taken"` (uniform — never reveals which field collided) |
 | 422 | Validation error (invalid email format, etc.) |
 
 ---
 
 ### POST /auth/login
-Log in and receive a JWT access token.
+Log in and receive a JWT access token. Also sets the rotating refresh-token cookie.
 
 **Request Body:**
 ```json
 {
   "email": "alice@example.com",
-  "password": "mypassword"
+  "password": "mypassword",
+  "remember_me": false
 }
 ```
 
-**Response 200:**
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| email | string | — | Case-insensitive |
+| password | string | — | |
+| remember_me | bool | `false` | `true` → **persistent** session (30-day cookie). `false` → **ephemeral** session (session cookie; server-enforced 30-min idle timeout + 12h absolute cap). |
+
+**Response 200:** (also `Set-Cookie: refresh_token=…; HttpOnly; SameSite=Lax; Path=/api/v1/auth`)
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -77,6 +85,65 @@ Log in and receive a JWT access token.
 | Status | Detail |
 |---|---|
 | 401 | `"Invalid email or password"` |
+| 429 | Rate limited (5/min per IP, plus a per-account limit) |
+
+---
+
+### POST /auth/refresh
+Rotate the refresh cookie and mint a new 5-minute access token. Called on every app load and whenever the access token expires. Requires the `refresh_token` cookie and a **trusted `Origin`/`Referer`** (CSRF guard).
+
+**Response 200:** new `access_token` + rotated `refresh_token` cookie.
+
+| Status | Detail |
+|---|---|
+| 401 | Missing / expired / revoked / idle-timed-out token (uniform — no oracle). Reuse of an already-rotated token revokes the whole family (theft response). |
+| 403 | Untrusted origin |
+| 429 | Rate limited (20/min per IP) |
+
+---
+
+### POST /auth/logout
+Revoke the entire refresh-token family and clear the cookie. Requires a trusted `Origin`/`Referer`.
+
+**Response 204.** (403 on untrusted origin.)
+
+---
+
+### GET /auth/sessions
+List the caller's active sessions — one entry per live refresh-token family.
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "family_id": "uuid",
+      "current": true,
+      "device_label": "Chrome on Windows",
+      "ip": "203.0.113.7",
+      "session_policy": "persistent",
+      "created_at": "2026-07-12T10:00:00",
+      "last_used_at": "2026-07-12T10:05:00",
+      "expires_at": "2026-08-11T10:00:00"
+    }
+  ],
+  "meta": { "total": 1 }
+}
+```
+
+---
+
+### DELETE /auth/sessions/{family_id}
+Revoke a single session (device). Scoped to the caller's own families.
+
+**Response 204.** (404 if the family isn't the caller's or is already revoked.)
+
+---
+
+### POST /auth/sessions/revoke-all
+Sign out **everywhere** — revokes all families and bumps `token_version`, invalidating outstanding access tokens on their next request (including the current device).
+
+**Response 200:** `{ "revoked": <count> }`
 
 ---
 
@@ -92,6 +159,7 @@ Get the currently authenticated user's profile.
   "username": "alice",
   "email": "alice@example.com",
   "is_active": true,
+  "has_password": true,
   "created_at": "2026-07-09T10:00:00",
   "updated_at": "2026-07-09T10:00:00"
 }
@@ -484,6 +552,7 @@ Verify database connectivity. Executes `SELECT 1`.
 | 403 | Forbidden | Valid token, insufficient permissions |
 | 404 | Not Found | Resource doesn't exist or belongs to another user |
 | 422 | Unprocessable Entity | FastAPI request body validation failure |
+| 429 | Too Many Requests | Rate limit exceeded (auth endpoints) |
 
 ---
 
@@ -492,10 +561,12 @@ Verify database connectivity. Executes `SELECT 1`.
 | Property | Value |
 |---|---|
 | Algorithm | HS256 |
-| Expiry | 30 minutes from issuance |
-| Payload fields | `sub` (user UUID string), `email`, `exp` (expiry timestamp) |
-| Storage | Browser `localStorage` key: `access_token` |
+| Expiry | **5 minutes** from issuance |
+| Payload fields | `sub` (user UUID), `email`, `ver` (token version), `sid` (refresh-family id), `jti`, `iat`, `nbf`, `exp` |
+| Storage | **Browser memory only** (module variable) — never `localStorage`/`sessionStorage`. Re-obtained on each app load via `POST /auth/refresh`. |
 | Transport | `Authorization: Bearer <token>` header |
+| Revocation | `ver` must match `users.token_version`; password change / "sign out everywhere" invalidate all tokens |
+| Session token | Rotating, SHA-256-hashed refresh token in an HttpOnly cookie (path `/api/v1/auth`); atomic rotation with reuse detection and per-family revocation. Persistent (30-day) vs ephemeral (idle-timeout) policy chosen by `remember_me` at login. |
 
 ---
 
@@ -525,4 +596,62 @@ is_favorite, usage_count, last_used_at, deleted_at, created_at, updated_at
 ### TokenResponse
 ```
 access_token, token_type
+```
+
+### PromptResponse (current)
+`PromptResponse` also includes the prompt's `tags` and `variables`.
+
+---
+
+## Complete Endpoint Reference
+
+Beyond the endpoints detailed above, the current API exposes the following. Full
+request/response schemas are available in the interactive Swagger UI at `/docs`
+(enabled in development; disabled in production).
+
+**Auth & account**
+```
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+POST   /api/v1/auth/refresh
+POST   /api/v1/auth/logout
+GET    /api/v1/auth/me
+POST   /api/v1/auth/change-password
+GET    /api/v1/auth/sessions
+POST   /api/v1/auth/sessions/revoke-all
+GET    /api/v1/auth/oauth/{provider}/start      # google | github
+GET    /api/v1/auth/oauth/{provider}/callback
+DELETE /api/v1/auth/account
+GET    /api/v1/auth/account/export
+```
+
+**Prompts**
+```
+GET    /api/v1/prompts                 # list + filter (q, group_id, tag, is_favorite) + paginate
+POST   /api/v1/prompts
+GET    /api/v1/prompts/{id}
+PUT    /api/v1/prompts/{id}
+DELETE /api/v1/prompts/{id}            # soft delete
+POST   /api/v1/prompts/{id}/copy       # copy + increment usage_count
+POST   /api/v1/prompts/{id}/duplicate
+POST   /api/v1/prompts/{id}/favorite
+DELETE /api/v1/prompts/{id}/favorite
+GET    /api/v1/prompts/{id}/versions
+POST   /api/v1/prompts/{id}/restore
+POST   /api/v1/prompts/{id}/versions/{version_id}/restore
+GET    /api/v1/prompts/trash
+GET    /api/v1/prompts/discover/{kind} # most-used | recently-edited | favorites | recent
+POST   /api/v1/prompts/bulk
+POST   /api/v1/prompts/import
+GET    /api/v1/prompts/export          # format=json | csv | markdown
+```
+
+**Groups / Tags / Dashboard**
+```
+GET/POST            /api/v1/groups
+GET/PUT/DELETE      /api/v1/groups/{id}
+GET/POST            /api/v1/tags
+GET                 /api/v1/tags/{id}
+GET                 /api/v1/dashboard/stats
+GET                 /api/v1/dashboard/recent
 ```

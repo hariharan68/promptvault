@@ -21,13 +21,13 @@ PromptNest v1.0 uses **black-box integration testing** via HTTP requests against
 
 ### 1.2 Pre-Requisites
 1. PostgreSQL running with `promptnest` database accessible.
-2. FastAPI backend running: `uvicorn app.main:app --reload --port 8000`
-3. Python packages installed: `pip install requests`
+2. FastAPI backend running: `uv run app.py` (port 8000).
+3. Dependencies installed via `uv sync` (includes httpx/requests as needed).
 
 ### 1.3 Test Execution
 ```bash
 cd backend
-python test_api.py
+uv run python test_api.py
 ```
 
 ---
@@ -251,8 +251,8 @@ check(len(data) >= 0, "Has expected data", f"count={len(data)}")
 
 To run tests in CI:
 1. Start a PostgreSQL instance with database `promptnest`.
-2. Run `alembic upgrade head` (or equivalent schema setup).
-3. Start FastAPI: `uvicorn app.main:app --port 8000 &`
+2. Run `uv run alembic upgrade head`.
+3. Start FastAPI: `uv run app.py &` (or `uv run uvicorn app.main:app --port 8000 &`).
 4. Wait for server ready: `curl --retry 5 --retry-delay 1 http://127.0.0.1:8000/health`
-5. Run tests: `python test_api.py`
+5. Run tests: `uv run python test_api.py`
 6. Check exit code: add `sys.exit(1 if failed > 0 else 0)` to `test_api.py`.

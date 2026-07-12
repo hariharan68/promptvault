@@ -36,12 +36,14 @@ PromptNest follows a classic three-tier architecture:
 │                     DATA TIER                                │
 │                                                             │
 │  PostgreSQL (port 5432, database: promptnest)              │
-│  ├── users                                                  │
+│  ├── users            (incl. token_version)                 │
 │  ├── groups                                                  │
 │  ├── tags                                                    │
 │  ├── prompts                                                 │
 │  ├── prompt_tags                                             │
-│  └── refresh_tokens                                          │
+│  ├── prompt_versions                                         │
+│  ├── refresh_tokens                                          │
+│  └── oauth_accounts                                          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -53,39 +55,23 @@ PromptNest follows a classic three-tier architecture:
 ```
 backend/
 ├── app/
-│   ├── main.py              # FastAPI app, router registration, health endpoints
+│   ├── main.py              # FastAPI app, middleware (security headers/CSP), handlers
 │   ├── database.py          # SQLAlchemy engine, session, Base
 │   ├── core/
-│   │   ├── security.py      # password hashing, JWT creation/verification
-│   │   └── dependencies.py  # get_current_user FastAPI dependency
-│   ├── models/
-│   │   ├── __init__.py      # imports all models (table creation)
-│   │   ├── user.py
-│   │   ├── group.py
-│   │   ├── tag.py
-│   │   ├── prompt.py
-│   │   ├── prompt_tag.py
-│   │   └── refresh_token.py
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── auth.py
-│   │   ├── group.py
-│   │   ├── tag.py
-│   │   ├── prompt.py
-│   │   └── search.py
-│   ├── services/
-│   │   ├── auth_service.py
-│   │   ├── group_service.py
-│   │   ├── tag_service.py
-│   │   └── prompt_service.py
-│   └── routers/
-│       ├── auth.py          # prefix: /api/v1/auth
-│       ├── groups.py        # prefix: /api/v1/groups
-│       ├── tags.py          # prefix: /api/v1/tags
-│       └── prompts.py       # prefix: /api/v1/prompts
+│   │   ├── config.py        # env-driven settings + production guards
+│   │   ├── security.py      # password hashing, JWT create/verify
+│   │   ├── dependencies.py  # get_current_user (JWT + token_version)
+│   │   └── rate_limit.py    # sliding-window rate limiter
+│   ├── models/              # user, group, tag, prompt, prompt_tag,
+│   │                        #   prompt_version, refresh_token, oauth_account
+│   ├── schemas/             # user, auth, group, tag, prompt, search, common, product
+│   ├── services/            # auth, group, tag, prompt, dashboard, oauth
+│   └── routers/             # auth, groups, tags, prompts, dashboard (prefix /api/v1)
+├── alembic/                 # database migrations
+├── app.py                   # uv entry point (uvicorn runner)
+├── pyproject.toml           # dependencies (uv) + uv.lock
+├── requirements.txt         # pip fallback
 ├── test_api.py
-├── requirements.txt
 └── .env
 ```
 
@@ -299,7 +285,7 @@ Example: User searches for "python" prompts.
 ```
 Developer Machine
 ├── PostgreSQL (system service, port 5432)
-├── uvicorn app.main:app --reload --port 8000  (backend)
+├── uv run app.py  (backend, port 8000)
 └── npm run dev (frontend, port 3000)
     └── Vite proxy: /api/* → http://127.0.0.1:8000
 ```
@@ -321,14 +307,14 @@ This means the browser calls `http://localhost:3000/api/...` and Vite forwards i
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Auth strategy | JWT stateless | No session store needed, scales easily |
+| Auth strategy | JWT access + rotating refresh cookie | Short-lived tokens, revocable via token_version |
 | ORM | SQLAlchemy synchronous | Simple, stable, well-documented |
-| Soft deletes | `deleted_at` timestamp | Data safety, potential future restore |
-| State management | React Context only | Scope doesn't justify Redux/Zustand |
-| Styling | Inline styles + CSS vars | No build-time CSS dependency, fast to iterate |
-| API layer | Axios with interceptors | Centralizes auth header and 401 handling |
+| Soft deletes | `deleted_at` timestamp | Data safety, restore via Trash |
+| State management | React Context + SWR | Scope doesn't justify Redux/Zustand |
+| Styling | Tailwind CSS v4 (plum tokens) | Utility-first, dark mode support |
+| API layer | Axios with interceptors | Centralizes auth header + deduped 401 refresh |
 | Tag replacement | Full replace on update | Simpler than diff-and-patch; consistent |
-| Pagination | None in v1 | Acceptable for personal libraries (<1000 prompts) |
+| Pagination | `page` / `page_size` on list | Handles large libraries |
 
 ---
 
@@ -336,9 +322,8 @@ This means the browser calls `http://localhost:3000/api/...` and Vite forwards i
 
 | Limitation | Impact | Mitigation |
 |---|---|---|
-| No database migrations (Alembic) | Schema changes require manual SQL | Add Alembic before first prod deploy |
 | Synchronous SQLAlchemy | Can block under high load | Switch to async SQLAlchemy + asyncpg for scale |
-| JWT secret hardcoded in source | Security risk in production | Move to environment variable immediately |
-| No pagination | Full table scan on every list request | Add `limit`/`offset` or cursor pagination |
-| Tags not in PromptResponse | Frontend cannot display tags from API alone | Add SQLAlchemy relationship + schema update |
-| No CORS configuration | Vite proxy masks CORS in dev; prod will fail | Add `CORSMiddleware` in `main.py` before prod |
+| In-memory rate limiter | Per-process; resets on restart | Use a shared store (Redis) for multi-instance |
+| Access token in `localStorage` | XSS could exfiltrate it | Mitigated by CSP + revocation; HttpOnly cookie is future work |
+
+**Resolved:** Alembic migrations, environment-based `SECRET_KEY` (+ prod guard), pagination, `tags` in `PromptResponse`, and CORS middleware are all implemented.

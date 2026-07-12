@@ -1,31 +1,35 @@
 # UI/UX Documentation
 # PromptNest
 
-**Version:** 1.0  
-**Date:** 2026-07-09  
-**Frontend:** React 18 + Vite, no UI library (pure inline styles)
+**Version:** 2.0  
+**Date:** 2026-07-11  
+**Frontend:** React 18 + Vite + **Tailwind CSS v4**, Motion (Framer), Phosphor icons
+
+> The authoritative, detailed design extraction lives in `design.md` at the repo
+> root. This section summarizes the current **plum, light-first** design system,
+> which replaced the earlier dark-only purple theme.
 
 ---
 
 ## 1. Design System
 
 ### 1.1 Color Palette
-Defined as CSS variables in `src/styles/index.css`:
+Design tokens are defined in `src/styles/index.css` (light-first, with dark-mode variants):
 
-| Variable | Hex | Usage |
+| Token | Hex | Usage |
 |---|---|---|
-| `--color-bg` | `#0f1117` | Page background (darkest) |
-| `--color-surface` | `#1a1d27` | Cards, sidebar, modals |
-| `--color-surface-hover` | `#22263a` | Hovered surfaces, active nav items |
-| `--color-border` | `#2a2d3e` | All borders |
-| `--color-primary` | `#6c63ff` | Buttons, links, active nav, accent |
-| `--color-primary-hover` | `#574fd6` | Primary hover (defined, not yet wired) |
-| `--color-danger` | `#e05260` | Delete buttons, error messages |
-| `--color-text` | `#e2e8f0` | Primary text |
-| `--color-text-muted` | `#8892a4` | Labels, placeholders, secondary info |
-| `--color-success` | `#38c96b` | Success states (defined, not yet used) |
+| `--color-accent` (plum) | `#714B67` | Primary buttons, links, active states, accent |
+| `--color-accent-d` | `#5A3A52` | Accent hover |
+| `--color-bg` | `#FFFFFF` | Page background (light) |
+| `--color-surface2` | `#F3F4F6` | Subtle surfaces, cards background |
+| `--color-border` | `#E5E7EB` | Borders |
+| `--color-text` | `#111827` | Primary text |
+| `--color-muted` | `#6B7280` | Labels, placeholders, secondary text |
+| Dark panels | `#1A1B22` / `#252733` | Dark-mode backgrounds, auth/landing panels |
 
-**Theme:** Dark mode only (v1.0). Light mode is a planned future enhancement.
+**Fonts:** Inter Variable (UI/body) + Source Serif 4 Variable (brand & headings).
+
+**Theme:** Light-first with a full **dark mode** (toggle in-app and in docs), via Tailwind's `dark:` variant.
 
 ### 1.2 Typography
 - **Font family:** `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`

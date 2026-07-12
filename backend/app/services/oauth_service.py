@@ -1,12 +1,14 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 import base64
 import hashlib
 import re
 import secrets
+import uuid
 from urllib.parse import urlencode
 
 import httpx
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -18,11 +20,21 @@ from app.core.config import (
     GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI,
 )
+from app.core.normalize import normalize_email
+from app.core.security import verify_password
+from app.models.link_challenge import LinkChallenge
 from app.models.oauth_account import OAuthAccount
+from app.models.oauth_transaction import OAuthTransaction
 from app.models.user import User
 
 
 SUPPORTED_PROVIDERS = {"google", "github"}
+
+# An authorization round-trip through the provider should complete in seconds;
+# 10 minutes is a generous ceiling that still bounds replay/CSRF exposure.
+OAUTH_TXN_TTL_MINUTES = 10
+# A user confirming "yes, link this" should take seconds-to-a-minute.
+LINK_CHALLENGE_TTL_MINUTES = 10
 
 
 class OAuthError(Exception):
@@ -93,6 +105,64 @@ def create_authorization_request(provider: str) -> tuple[str, str, str]:
     return f"{endpoint}?{urlencode(params)}", state, verifier
 
 
+def start_oauth_transaction(db: Session, provider: str, remember_me: bool) -> tuple[str, uuid.UUID]:
+    """Build the authorization URL and persist its transaction. Returns (url, txn_id).
+
+    The state and PKCE verifier live server-side now, not in cookies — so the
+    callback can verify state against the table and consume the row once.
+    """
+    authorization_url, state, verifier = create_authorization_request(provider)
+    now = datetime.utcnow()
+    txn = OAuthTransaction(
+        provider=provider,
+        state=state,
+        pkce_verifier=verifier,
+        remember_me=remember_me,
+        expires_at=now + timedelta(minutes=OAUTH_TXN_TTL_MINUTES),
+    )
+    db.add(txn)
+    db.commit()
+    return authorization_url, txn.txn_id
+
+
+@dataclass(frozen=True)
+class ConsumedTransaction:
+    provider: str
+    pkce_verifier: str
+    remember_me: bool
+
+
+def consume_oauth_transaction(db: Session, provider: str, state: str) -> ConsumedTransaction:
+    """Atomically claim the transaction for `state`, exactly once.
+
+    The single UPDATE is the lock: it matches only an unconsumed, unexpired row
+    for this provider and stamps `consumed_at` in the same statement. A second
+    callback with the same state (replay), an expired row, or a forged/unknown
+    state all return no row → uniform error. Lookup is keyed on `state` (not the
+    cookie txn_id) so a second tab overwriting the cookie can't break the first
+    tab's callback — state is a 256-bit single-use secret, which is the guarantee.
+    """
+    now = datetime.utcnow()
+    row = db.execute(
+        text(
+            """
+            UPDATE oauth_transactions
+               SET consumed_at = :now
+             WHERE state = :state
+               AND provider = :provider
+               AND consumed_at IS NULL
+               AND expires_at > :now
+            RETURNING provider, pkce_verifier, remember_me
+            """
+        ),
+        {"now": now, "state": state, "provider": provider},
+    ).first()
+    db.commit()
+    if row is None:
+        raise OAuthError("invalid_oauth_transaction", "This sign-in link has expired or was already used")
+    return ConsumedTransaction(provider=row.provider, pkce_verifier=row.pkce_verifier, remember_me=row.remember_me)
+
+
 async def fetch_oauth_profile(provider: str, code: str, verifier: str) -> OAuthProfile:
     client_id, client_secret, redirect_uri = _provider_config(provider)
     timeout = httpx.Timeout(10.0)
@@ -142,7 +212,7 @@ async def fetch_oauth_profile(provider: str, code: str, verifier: str) -> OAuthP
                 return OAuthProfile(
                     provider="google",
                     provider_user_id=str(profile["sub"]),
-                    email=str(profile.get("email", "")).strip().lower(),
+                    email=normalize_email(str(profile.get("email", ""))),
                     email_verified=profile.get("email_verified") is True,
                     username=str(profile.get("name") or profile.get("email", "").split("@")[0]),
                 )
@@ -158,7 +228,7 @@ async def fetch_oauth_profile(provider: str, code: str, verifier: str) -> OAuthP
             return OAuthProfile(
                 provider="github",
                 provider_user_id=str(profile["id"]),
-                email=str((selected_email or {}).get("email", "")).strip().lower(),
+                email=normalize_email(str((selected_email or {}).get("email", ""))),
                 email_verified=selected_email is not None,
                 username=str(profile.get("login") or "github_user"),
             )
@@ -193,19 +263,36 @@ def login_or_create_oauth_user(db: Session, profile: OAuthProfile) -> User:
             raise OAuthError("account_inactive", "This PromptNest account is inactive")
         return user
 
-    user = db.query(User).filter(func.lower(User.email) == profile.email.lower()).first()
-    if user and not user.is_active:
-        raise OAuthError("account_inactive", "This PromptNest account is inactive")
-    if not user:
-        user = User(
-            username=_available_username(db, profile.username),
-            email=profile.email,
-            password_hash=None,
-            is_active=True,
+    existing = db.query(User).filter(func.lower(User.email) == profile.email.lower()).first()
+    if existing:
+        if not existing.is_active:
+            raise OAuthError("account_inactive", "This PromptNest account is inactive")
+        # Email matches an account with no linked identity for this provider.
+        # Auto-linking here is the account-takeover vector, so require proof first.
+        if existing.password_hash:
+            # Password account → the user must re-enter its password to link.
+            raise OAuthLinkRequired(
+                user_id=existing.id,
+                provider=profile.provider,
+                provider_user_id=profile.provider_user_id,
+                email=profile.email,
+            )
+        # OAuth-only account from a different provider (no password). Without an
+        # email round-trip we can't prove control, so we refuse to link silently.
+        raise OAuthError(
+            "account_exists_use_original_provider",
+            "An account with this email already exists. Sign in with your original method.",
         )
-        db.add(user)
-        db.flush()
 
+    # No account for this email → create a fresh one and link it.
+    user = User(
+        username=_available_username(db, profile.username),
+        email=profile.email,
+        password_hash=None,
+        is_active=True,
+    )
+    db.add(user)
+    db.flush()
     db.add(OAuthAccount(
         user_id=user.id,
         provider=profile.provider,
@@ -227,3 +314,86 @@ def login_or_create_oauth_user(db: Session, profile: OAuthProfile) -> User:
             if user:
                 return user
         raise OAuthError("account_link_failed", "Could not link the OAuth account") from exc
+
+
+class OAuthLinkRequired(Exception):
+    """Raised when an OAuth login matches an existing password account. The
+    caller must run the confirm-password challenge before the link is created."""
+
+    def __init__(self, *, user_id, provider: str, provider_user_id: str, email: str):
+        super().__init__("link confirmation required")
+        self.user_id = user_id
+        self.provider = provider
+        self.provider_user_id = provider_user_id
+        self.email = email
+
+
+@dataclass(frozen=True)
+class ConfirmedLink:
+    user: User
+    remember_me: bool
+
+
+def create_link_challenge(db: Session, *, user_id, provider: str, provider_user_id: str, email: str, remember_me: bool):
+    """Persist a pending link challenge; returns its id (goes in an httpOnly cookie)."""
+    now = datetime.utcnow()
+    challenge = LinkChallenge(
+        user_id=user_id,
+        provider=provider,
+        provider_user_id=provider_user_id,
+        email_at_link=email,
+        remember_me=remember_me,
+        expires_at=now + timedelta(minutes=LINK_CHALLENGE_TTL_MINUTES),
+    )
+    db.add(challenge)
+    db.commit()
+    return challenge.challenge_id
+
+
+def confirm_link_challenge(db: Session, challenge_id: str, password: str) -> ConfirmedLink:
+    """Verify the existing account's password, then link the OAuth identity.
+
+    Wrong password does NOT consume the challenge (retry within the rate limit);
+    an invalid/expired challenge or any other failure returns a uniform error.
+    """
+    try:
+        challenge_uuid = uuid.UUID(str(challenge_id))
+    except (ValueError, TypeError):
+        raise OAuthError("link_challenge_invalid", "This confirmation request is invalid or has expired")
+
+    now = datetime.utcnow()
+    challenge = db.query(LinkChallenge).filter(
+        LinkChallenge.challenge_id == challenge_uuid,
+        LinkChallenge.consumed_at.is_(None),
+        LinkChallenge.expires_at > now,
+    ).first()
+    if challenge is None:
+        raise OAuthError("link_challenge_invalid", "This confirmation request is invalid or has expired")
+
+    user = db.query(User).filter(User.id == challenge.user_id, User.is_active.is_(True)).first()
+    if user is None or not user.password_hash:
+        raise OAuthError("link_challenge_invalid", "This confirmation request is invalid or has expired")
+
+    if not verify_password(password, user.password_hash):
+        raise OAuthError("invalid_link_credentials", "Incorrect password")
+
+    challenge.consumed_at = now
+    db.add(OAuthAccount(
+        user_id=user.id,
+        provider=challenge.provider,
+        provider_user_id=challenge.provider_user_id,
+        email_at_link=challenge.email_at_link,
+    ))
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        # Identity already linked (replay / race). Accept if it's this same user.
+        identity = db.query(OAuthAccount).filter(
+            OAuthAccount.provider == challenge.provider,
+            OAuthAccount.provider_user_id == challenge.provider_user_id,
+        ).first()
+        if not (identity and identity.user_id == user.id):
+            raise OAuthError("account_link_failed", "Could not link the account") from exc
+    db.refresh(user)
+    return ConfirmedLink(user=user, remember_me=challenge.remember_me)

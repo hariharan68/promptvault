@@ -50,3 +50,19 @@ def get_current_user(
         )
 
     return user
+
+
+def get_current_session_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str | None:
+    """The `sid` (refresh-token family id) of the presenting access token.
+
+    Lets the sessions endpoint flag which listed device is the current one.
+    Returns None if the token can't be decoded (the endpoint's get_current_user
+    dependency has already enforced validity, so this is only ever informational).
+    """
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+    return payload.get("sid")

@@ -1,25 +1,28 @@
 # Database Design Document
 # PromptNest
 
-**Version:** 1.0  
-**Date:** 2026-07-09  
-**Database:** PostgreSQL  
-**ORM:** SQLAlchemy (declarative_base)
+**Version:** 2.0  
+**Date:** 2026-07-11  
+**Database:** PostgreSQL (`promptnest`)  
+**ORM:** SQLAlchemy (declarative_base)  
+**Migrations:** Alembic (`backend/alembic/versions/`)
 
 ---
 
 ## 1. Overview
 
-PromptNest uses 6 tables. All primary keys are UUID v4. All timestamps use PostgreSQL server-side defaults (`func.now()`).
+PromptNest uses 8 tables. All primary keys are UUID v4. All timestamps use PostgreSQL server-side defaults (`func.now()`). Schema changes are applied with Alembic (`uv run alembic upgrade head`).
 
 ```
 users
-  └─ groups         (user_id FK → CASCADE DELETE)
-  └─ tags           (user_id FK → CASCADE DELETE)
-  └─ prompts        (user_id FK → CASCADE DELETE)
+  └─ groups          (user_id FK → CASCADE DELETE)
+  └─ tags            (user_id FK → CASCADE DELETE)
+  └─ prompts         (user_id FK → CASCADE DELETE)
        └─ group_id FK → groups (SET NULL on delete)
-  └─ prompt_tags    (prompt_id FK → CASCADE, tag_id FK → CASCADE)
-  └─ refresh_tokens (user_id FK → CASCADE DELETE)
+  └─ prompt_tags     (prompt_id FK → CASCADE, tag_id FK → CASCADE)
+  └─ prompt_versions (prompt_id/user_id FK → CASCADE DELETE)
+  └─ refresh_tokens  (user_id FK → CASCADE DELETE)
+  └─ oauth_accounts  (user_id FK → CASCADE DELETE)
 ```
 
 ---
@@ -34,8 +37,9 @@ users
 | `id` | UUID | PK, default uuid4 | Auto-generated |
 | `username` | VARCHAR(50) | NOT NULL, UNIQUE | Display name, login identifier |
 | `email` | VARCHAR(255) | NOT NULL, UNIQUE | Used for login |
-| `password_hash` | TEXT | NOT NULL | bcrypt hash of password |
-| `is_active` | BOOLEAN | NOT NULL, default TRUE | Soft-disable user (future use) |
+| `password_hash` | TEXT | NULLABLE | bcrypt hash; NULL for OAuth-only accounts |
+| `is_active` | BOOLEAN | NOT NULL, default TRUE | Soft-disable user |
+| `token_version` | INTEGER | NOT NULL, default 0 | Bumped on password change / "sign out everywhere" to revoke access tokens |
 | `created_at` | TIMESTAMP | NOT NULL, server_default=now() | |
 | `updated_at` | TIMESTAMP | NOT NULL, server_default=now(), onupdate=now() | Auto-updated |
 
@@ -143,12 +147,46 @@ ORDER BY created_at DESC;
 |---|---|---|---|
 | `id` | UUID | PK, default uuid4 | |
 | `user_id` | UUID | FK → users.id, NOT NULL, CASCADE DELETE | |
-| `token_hash` | TEXT | NOT NULL, UNIQUE | bcrypt/hash of the refresh token |
-| `expires_at` | TIMESTAMP | NOT NULL | When the token expires |
+| `token_hash` | TEXT | NOT NULL, UNIQUE | **SHA-256** hash of the refresh token |
+| `expires_at` | TIMESTAMP | NOT NULL | When the token expires (30 days) |
 | `revoked_at` | TIMESTAMP | NULLABLE | NULL = active, set = revoked |
 | `created_at` | TIMESTAMP | NOT NULL, server_default=now() | |
 
-**Status:** Model defined and included in `__init__.py`, but not yet wired to any endpoint. Reserved for v2 refresh token implementation.
+**Status:** ✅ Fully implemented. Refresh tokens rotate on every use (old revoked, new issued) and back the HttpOnly refresh cookie. `GET /auth/sessions` lists active tokens; logout, password change, and "sign out everywhere" revoke them.
+
+---
+
+### 2.7 `prompt_versions`
+**File:** `app/models/prompt_version.py`
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default uuid4 | |
+| `prompt_id` | UUID | FK → prompts.id, NOT NULL, CASCADE DELETE | Parent prompt |
+| `user_id` | UUID | FK → users.id, NOT NULL, CASCADE DELETE | Owner |
+| `title` | VARCHAR(200) | NOT NULL | Snapshot of the title |
+| `description` | TEXT | NULLABLE | Snapshot |
+| `prompt_content` | TEXT | NOT NULL | Snapshot of the content |
+| `variables` | JSON | NULLABLE | Snapshot of variables |
+| `created_at` | TIMESTAMP | NOT NULL, server_default=now() | When the snapshot was taken |
+
+**Notes:** A snapshot is recorded on meaningful edits. `GET /prompts/{id}/versions` lists history; `POST /prompts/{id}/versions/{version_id}/restore` rolls back.
+
+---
+
+### 2.8 `oauth_accounts`
+**File:** `app/models/oauth_account.py`
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `id` | UUID | PK, default uuid4 | |
+| `user_id` | UUID | FK → users.id, NOT NULL, CASCADE DELETE | Linked PromptNest user |
+| `provider` | VARCHAR(20) | NOT NULL, CHECK in ('google','github') | |
+| `provider_user_id` | VARCHAR(255) | NOT NULL | Provider's stable user id |
+| `email_at_link` | VARCHAR(255) | NOT NULL | Email at time of linking |
+| `created_at` / `updated_at` | TIMESTAMP | NOT NULL, server_default=now() | |
+
+**Constraints:** UNIQUE `(provider, provider_user_id)` and UNIQUE `(user_id, provider)`. Provider access tokens are **not** stored.
 
 ---
 
@@ -268,8 +306,10 @@ The current model does not define explicit indexes beyond PKs and UNIQUE constra
 
 | Issue | Notes |
 |---|---|
-| No DB-level unique constraint on `(user_id, name)` in groups/tags | Race condition possible; add `UniqueConstraint` in migration |
-| `refresh_tokens` table unused | Ready for v2 implementation |
-| No database migrations tool configured | Add Alembic for schema migrations |
-| `datetime.utcnow()` deprecated | Should use `datetime.now(timezone.utc)` in Python 3.12+ |
-| Tags not returned in `PromptResponse` | Pydantic schema does not include `tags` field; requires relationship + schema update |
+| No DB-level unique constraint on `(user_id, name)` in groups/tags | Race condition possible; enforced at app layer today |
+| `datetime.utcnow()` deprecated | Should migrate to `datetime.now(timezone.utc)` |
+| Soft-deleted prompts never purged | Add a scheduled cleanup job |
+
+**Resolved since v1:** Alembic migrations are configured; `refresh_tokens` is fully implemented (rotating sessions); `PromptResponse` now returns `tags`.
+
+Search/lookup indexes are added via migrations (`20260711_search_indexes`, plus the OAuth index `ix_oauth_accounts_user_id`).

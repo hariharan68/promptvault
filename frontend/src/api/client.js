@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getToken, setToken, beginLogout, currentEpoch } from "./authState.js";
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
 if (import.meta.env.PROD && !configuredBaseUrl) {
@@ -25,7 +26,7 @@ export function refreshSession() {
 }
 
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -39,12 +40,15 @@ client.interceptors.response.use(
     const isAuthEndpoint = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout"].some((path) => url.includes(path));
     if (error.response?.status === 401 && !isAuthEndpoint && !error.config?._retry) {
       error.config._retry = true;
+      // Capture the epoch before refreshing: if a logout races in, the write-back
+      // is dropped by setToken and we don't resurrect the session.
+      const epochAtStart = currentEpoch();
       return refreshSession().then(({ data }) => {
-        localStorage.setItem("access_token", data.access_token);
+        setToken(data.access_token, epochAtStart);
         error.config.headers.Authorization = `Bearer ${data.access_token}`;
         return client(error.config);
       }).catch((refreshError) => {
-        localStorage.removeItem("access_token");
+        beginLogout();
         window.location.href = "/login";
         return Promise.reject(refreshError);
       });

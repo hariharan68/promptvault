@@ -76,16 +76,15 @@ files because the settings are loaded at startup.
 From `backend`:
 
 ```powershell
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload --port 8000
+uv sync
+uv run alembic upgrade head
+uv run app.py
 ```
 
 From `frontend` in another terminal:
 
 ```powershell
-npm run dev -- --host 127.0.0.1
+npm run dev
 ```
 
 Open `http://127.0.0.1:3000/login`, then test both provider buttons.

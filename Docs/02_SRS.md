@@ -75,7 +75,7 @@ PostgreSQL Database (port 5432, database: promptnest)
 
 **FR-AUTH-06:** The system shall reject login with incorrect credentials (HTTP 401, detail: `"Invalid email or password"`).
 
-**FR-AUTH-07:** JWT tokens shall expire after 30 minutes from issuance.
+**FR-AUTH-07:** Access-token JWTs shall expire 5 minutes after issuance and be held in browser memory only; a rotating HttpOnly refresh-token cookie renews them via `POST /auth/refresh`.
 
 **FR-AUTH-08:** JWT payload shall include `sub` (user UUID as string) and `email`.
 
@@ -209,7 +209,7 @@ PostgreSQL Database (port 5432, database: promptnest)
 | Frontend dev port | 3000 |
 | Database | PostgreSQL on localhost:5432, database `promptnest` |
 | JWT algorithm | HS256 |
-| JWT expiry | 30 minutes |
+| JWT expiry | 5 minutes (access); refresh cookie 30 days persistent / idle-timeout ephemeral |
 | Password max length | 72 bytes (bcrypt limit) |
 | Username max length | 50 characters |
 | Prompt title max length | 200 characters |
@@ -236,5 +236,5 @@ PostgreSQL Database (port 5432, database: promptnest)
 ### 6.3 Frontend ↔ Backend Interface
 - Base URL (via `.env`): `VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1`
 - Vite dev proxy: requests to `/api/*` are proxied to `http://127.0.0.1:8000`
-- Auth header attached by Axios request interceptor from `localStorage.getItem("access_token")`
-- 401 responses handled by Axios response interceptor → clears token → redirects to `/login`
+- Auth header attached by Axios request interceptor from the in-memory access token (`authState.getToken()`; never `localStorage`)
+- 401 responses handled by Axios response interceptor → single-flight `POST /auth/refresh` → retry; if refresh fails, clears in-memory token → redirects to `/login`

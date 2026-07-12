@@ -1,78 +1,91 @@
-promptnest-ai/
+PromptNest/
 │
 ├── backend/
 │   │
 │   ├── app/
-│   │   │
 │   │   ├── __init__.py
-│   │   ├── main.py
-│   │   ├── database.py
+│   │   ├── main.py                 FastAPI app, middleware, security headers, exception handlers
+│   │   ├── database.py             SQLAlchemy engine & session
 │   │   │
 │   │   ├── core/
-│   │   │   ├── __init__.py
-│   │   │   ├── config.py
-│   │   │   └── security.py
+│   │   │   ├── config.py           env-driven settings (loads .env, prod guards)
+│   │   │   ├── security.py         bcrypt hashing, JWT create/verify
+│   │   │   ├── dependencies.py     get_current_user (JWT + token_version check)
+│   │   │   └── rate_limit.py       sliding-window rate limiter
 │   │   │
 │   │   ├── models/
-│   │   │   ├── __init__.py
-│   │   │   ├── user.py
+│   │   │   ├── user.py             includes token_version
 │   │   │   ├── group.py
 │   │   │   ├── prompt.py
 │   │   │   ├── tag.py
-│   │   │   └── refresh_token.py
+│   │   │   ├── prompt_tag.py
+│   │   │   ├── prompt_version.py
+│   │   │   ├── refresh_token.py
+│   │   │   └── oauth_account.py
 │   │   │
 │   │   ├── schemas/
-│   │   │   ├── __init__.py
 │   │   │   ├── auth.py
-│   │   │   ├── user.py
+│   │   │   ├── user.py             password/username validation
 │   │   │   ├── group.py
 │   │   │   ├── prompt.py
-│   │   │   └── tag.py
+│   │   │   ├── tag.py
+│   │   │   ├── search.py
+│   │   │   ├── common.py
+│   │   │   └── product.py
 │   │   │
 │   │   ├── routers/
-│   │   │   ├── __init__.py
-│   │   │   ├── auth.py
+│   │   │   ├── auth.py             login, register, refresh, OAuth, sessions, account
 │   │   │   ├── groups.py
-│   │   │   ├── prompts.py
+│   │   │   ├── prompts.py          CRUD, versions, trash, import/export, discover, bulk
 │   │   │   ├── tags.py
 │   │   │   └── dashboard.py
 │   │   │
-│   │   ├── services/
-│   │   │   ├── __init__.py
-│   │   │   ├── auth_service.py
-│   │   │   ├── group_service.py
-│   │   │   ├── prompt_service.py
-│   │   │   └── tag_service.py
-│   │   │
-│   │   └── utils/
-│   │       ├── __init__.py
-│   │       └── response.py
+│   │   └── services/
+│   │       ├── auth_service.py
+│   │       ├── group_service.py
+│   │       ├── prompt_service.py
+│   │       ├── tag_service.py
+│   │       ├── dashboard_service.py
+│   │       └── oauth_service.py    Google (PKCE) + GitHub authorization-code flow
 │   │
-│   ├── requirements.txt
-│   ├── .env
-│   ├── .env.example
-│   └── README.md
+│   ├── alembic/                    migrations (versions/*.py)
+│   ├── alembic.ini
+│   ├── app.py                      uv entry point (uvicorn runner)
+│   ├── pyproject.toml              dependencies (uv)
+│   ├── uv.lock                     locked dependency versions
+│   ├── requirements.txt            pip fallback
+│   ├── test_api.py
+│   ├── .env / .env.example
+│   └── .venv/                      uv-managed environment (gitignored)
 │
 ├── frontend/
 │   │
+│   ├── index.html                  SEO meta tags
 │   ├── src/
-│   │   ├── main.tsx
-│   │   ├── App.tsx
+│   │   ├── main.jsx
+│   │   ├── App.jsx                 routes: /, /docs, /login, /register, /oauth/callback, app
 │   │   │
 │   │   ├── pages/
-│   │   ├── components/
-│   │   ├── layouts/
-│   │   ├── services/
-│   │   ├── hooks/
-│   │   ├── store/
-│   │   ├── routes/
-│   │   └── utils/
+│   │   │   ├── LandingPage.jsx     public marketing page
+│   │   │   ├── DocsPage.jsx        public product documentation
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── RegisterPage.jsx
+│   │   │   ├── OAuthCallbackPage.jsx
+│   │   │   ├── DashboardPage.jsx
+│   │   │   ├── PromptsPage.jsx
+│   │   │   ├── GroupsPage.jsx
+│   │   │   ├── SettingsPage.jsx
+│   │   │   └── TrashPage.jsx
+│   │   │
+│   │   ├── components/             common, auth, prompts, groups
+│   │   ├── layouts/                AppLayout
+│   │   ├── context/                AuthContext, ThemeContext
+│   │   ├── api/                    client (Axios), authApi, groupApi, tagApi
+│   │   └── styles/                 index.css (Tailwind v4, plum tokens)
 │   │
 │   ├── package.json
-│   ├── vite.config.ts
-│   ├── tailwind.config.js
-│   └── .env
+│   ├── vite.config.js              port 3000, proxy /api → :8000
+│   └── .env / .env.example
 │
-├── docker-compose.yml
-├── README.md
+├── Docs/                           this documentation set
 └── .gitignore

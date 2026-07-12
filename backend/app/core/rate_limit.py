@@ -20,8 +20,22 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def enforce_rate_limit(request: Request, action: str, limit: int, window_seconds: int = 60) -> None:
-    client = _client_ip(request)
+def client_ip(request: Request) -> str:
+    """Public accessor for the proxy-aware client IP (also used for session metadata)."""
+    return _client_ip(request)
+
+
+def enforce_rate_limit(
+    request: Request,
+    action: str,
+    limit: int,
+    window_seconds: int = 60,
+    identity: str | None = None,
+) -> None:
+    # By default limits are keyed to the client IP. Pass `identity` (e.g. a
+    # normalized email) to throttle a single account across rotating IPs — the
+    # defense against distributed brute force at one target.
+    client = identity if identity is not None else _client_ip(request)
     key = (action, client)
     now = monotonic()
     with _lock:

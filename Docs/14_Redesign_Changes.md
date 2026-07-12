@@ -124,12 +124,12 @@ All sections use scroll-triggered `whileInView` fade-in animations via `motion/r
 
 ---
 
-## 10. Port Change — Frontend 5173 → 3000, Backend 8002 → 8080
+## 10. Port Change — Frontend 5173 → 3000, Backend 8002 → 8000
 
 | File | Change |
 |---|---|
-| `frontend/vite.config.js` | `port: 5173 → 3000`, proxy target `8002 → 8080` |
-| `frontend/.env` | Added `VITE_OAUTH_API_BASE_URL=http://127.0.0.1:8080/api/v1` |
+| `frontend/vite.config.js` | `port: 5173 → 3000`, proxy target `8002 → 8000` |
+| `frontend/.env` | Added `VITE_OAUTH_API_BASE_URL=http://127.0.0.1:8000/api/v1` |
 | `frontend/.env.example` | Updated `VITE_OAUTH_API_BASE_URL` port |
 | `backend/.env` | Added `CORS_ORIGINS`, `FRONTEND_URL`, `OAUTH_FRONTEND_CALLBACK_URL`, all OAuth redirect URIs with new ports |
 | `backend/.env.example` | All port references updated |
@@ -140,8 +140,8 @@ All sections use scroll-triggered `whileInView` fade-in animations via `motion/r
 | Service | URL |
 |---|---|
 | Frontend | `http://127.0.0.1:3000` |
-| Backend API | `http://127.0.0.1:8080` |
-| Google OAuth callback | `http://127.0.0.1:8080/api/v1/auth/oauth/google/callback` |
-| GitHub OAuth callback | `http://127.0.0.1:8080/api/v1/auth/oauth/github/callback` |
+| Backend API | `http://127.0.0.1:8000` |
+| Google OAuth callback | `http://127.0.0.1:8000/api/v1/auth/oauth/google/callback` |
+| GitHub OAuth callback | `http://127.0.0.1:8000/api/v1/auth/oauth/github/callback` |
 
-> If using OAuth, update the redirect URIs in Google Cloud Console and GitHub OAuth App settings to match the new port `8080`.
+> If using OAuth, update the redirect URIs in Google Cloud Console and GitHub OAuth App settings to match the new port `8000`.

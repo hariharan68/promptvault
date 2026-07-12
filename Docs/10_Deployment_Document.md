@@ -44,7 +44,7 @@ CREATE DATABASE promptnest;
 \l
 ```
 
-The backend creates all tables automatically on first start via `Base.metadata.create_all(engine)` (or equivalent model imports in `models/__init__.py`).
+The schema is managed with **Alembic migrations**. After creating the empty database, apply the schema with `uv run alembic upgrade head` (see §2.3).
 
 **Connection string (backend/.env):**
 ```
@@ -55,28 +55,25 @@ Update `postgres:admin` to match your PostgreSQL username and password.
 
 ### 2.3 Backend Setup
 
+The backend uses **uv** for dependency and environment management (declared in `pyproject.toml`). `uv run` auto-creates the `.venv` and installs everything on first use — no manual venv activation needed.
+
 ```bash
 # Navigate to backend directory
 cd PromptNest/backend
 
-# Create virtual environment
-python -m venv venv
+# Create backend/.env (minimum two required values)
+#   DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptnest
+#   SECRET_KEY=<a long random secret>
 
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
+# Install dependencies + apply database migrations
+uv sync
+uv run alembic upgrade head
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-echo "DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptnest" > .env
-
-# Start the server
-uvicorn app.main:app --reload --port 8000
+# Start the server (port 8000, autoreload)
+uv run app.py
 ```
+
+`app.py` is the entry point; it reads `HOST`, `PORT`, and `RELOAD` from the environment (defaults `127.0.0.1`, `8000`, `true`).
 
 **Verify:**
 - `http://127.0.0.1:8000/` → `{"message": "PromptNest backend is running"}`
@@ -103,9 +100,11 @@ npm run dev
 ### 2.5 Running Tests
 
 ```bash
-# Backend must be running on port 8000
-# From backend directory (with venv activated)
-python test_api.py
+# Backend must be running on port 8000, then from the backend directory:
+uv run python test_api.py
+
+# Unit / integration tests:
+uv run pytest
 ```
 
 Expected output:
@@ -118,32 +117,40 @@ All tests passed. PromptNest backend is working correctly.
 
 ## 3. Backend Requirements
 
-**File:** `backend/requirements.txt`
-```
-fastapi
-uvicorn
-sqlalchemy
-psycopg2-binary
-python-dotenv
-pydantic
-pydantic-settings
-email-validator
-passlib[bcrypt]
-python-jose[cryptography]
+Dependencies are declared in **`backend/pyproject.toml`** and locked in **`backend/uv.lock`** (a `requirements.txt` is also kept for pip-only environments).
+
+```toml
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "python-dotenv",
+    "pydantic",
+    "pydantic-settings",
+    "alembic",
+    "email-validator",
+    "passlib[bcrypt]",
+    "bcrypt<4.1",
+    "python-jose[cryptography]",
+    "httpx",
+]
 ```
 
 **Key package purposes:**
 | Package | Purpose |
 |---|---|
 | fastapi | Web framework and automatic OpenAPI docs |
-| uvicorn | ASGI server to run FastAPI |
+| uvicorn[standard] | ASGI server (with websockets + watchfiles reload) |
 | sqlalchemy | ORM for database operations |
+| alembic | Database schema migrations |
 | psycopg2-binary | PostgreSQL driver for Python |
 | python-dotenv | Load `.env` file into environment |
 | pydantic | Request/response validation and serialization |
 | email-validator | Email format validation in Pydantic |
-| passlib[bcrypt] | Password hashing with bcrypt |
+| passlib[bcrypt] + bcrypt<4.1 | Password hashing (bcrypt pinned for passlib compatibility) |
 | python-jose[cryptography] | JWT encode/decode |
+| httpx | OAuth token/profile exchange (Google, GitHub) |
 
 ---
 
@@ -152,18 +159,22 @@ python-jose[cryptography]
 **File:** `frontend/package.json`
 
 **Runtime:**
-| Package | Version | Purpose |
-|---|---|---|
-| react | ^18.3.1 | UI library |
-| react-dom | ^18.3.1 | React DOM renderer |
-| react-router-dom | ^6.24.0 | Client-side routing |
-| axios | ^1.7.2 | HTTP client |
+| Package | Purpose |
+|---|---|
+| react / react-dom (18) | UI library |
+| react-router-dom (6) | Client-side routing |
+| axios | HTTP client |
+| swr | Data fetching / caching |
+| motion | Animation (Framer Motion) |
+| @phosphor-icons/react | Icons |
+| @fontsource-variable/inter, source-serif-4 | Fonts |
 
 **Dev:**
-| Package | Version | Purpose |
-|---|---|---|
-| vite | ^5.3.1 | Build tool and dev server |
-| @vitejs/plugin-react | ^4.3.1 | React JSX transform for Vite |
+| Package | Purpose |
+|---|---|
+| vite (8) | Build tool and dev server (port 3000) |
+| @vitejs/plugin-react | React JSX transform for Vite |
+| @tailwindcss/vite (Tailwind v4) | Styling |
 
 ---
 
@@ -173,11 +184,24 @@ python-jose[cryptography]
 ```env
 # Required
 DATABASE_URL=postgresql://postgres:admin@localhost:5432/promptnest
-```
+SECRET_KEY=<a long random secret>
 
-**Missing (must add before production):**
-```env
-SECRET_KEY=<random-256-bit-hex-string>
+# Optional (defaults shown)
+ENVIRONMENT=development        # set "production" to enforce prod safety checks
+COOKIE_SECURE=false            # MUST be true in production (HTTPS)
+TRUST_PROXY=false              # true only when behind a reverse proxy you control
+ENABLE_DOCS=true               # Swagger/ReDoc; auto-off in production
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=30
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+FRONTEND_URL=http://127.0.0.1:3000
+OAUTH_FRONTEND_CALLBACK_URL=http://127.0.0.1:3000/oauth/callback
+
+# OAuth (optional — leave blank to disable a provider)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 ```
 
 Generate a secret key:
@@ -186,15 +210,16 @@ import secrets
 print(secrets.token_hex(32))
 ```
 
+> In `ENVIRONMENT=production`, the backend refuses to start if `SECRET_KEY` is a
+> known placeholder or shorter than 32 characters.
+
 ### 5.2 Frontend (`frontend/.env`)
 ```env
-VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
+VITE_API_BASE_URL=/api/v1
+VITE_OAUTH_API_BASE_URL=http://127.0.0.1:8000/api/v1
 ```
 
-For production, change to:
-```env
-VITE_API_BASE_URL=https://api.yourdomain.com/api/v1
-```
+For production, point these at your API domain (HTTPS).
 
 ---
 
@@ -202,34 +227,37 @@ VITE_API_BASE_URL=https://api.yourdomain.com/api/v1
 
 ### 6.1 Pre-Deployment Checklist
 
-**Security (REQUIRED before going live):**
-- [ ] Move `SECRET_KEY` from `security.py` hardcode to environment variable
-- [ ] Set a strong, random `SECRET_KEY` (32+ bytes of entropy)
-- [ ] Remove test credentials from `.env` files
-- [ ] Add `CORSMiddleware` to `main.py` with specific allowed origins
-- [ ] Set `DATABASE_URL` password to a strong credential
-- [ ] Enable HTTPS (TLS certificate via Let's Encrypt or cloud provider)
+**Already implemented (verify configured for prod):**
+- [x] `SECRET_KEY` loaded from environment (not hardcoded)
+- [x] `CORSMiddleware` configured with explicit allowed origins
+- [x] Security headers + strict CSP on all routes
+- [x] Rate limiting on auth endpoints
+- [x] Alembic migrations configured
 
-**Code fixes (REQUIRED):**
-- [ ] Remove duplicate `app.include_router(auth_router)` from `main.py`
-- [ ] Set `DESCRIPTION` → `description` in FastAPI constructor (lowercase key)
+**Security (set before going live):**
+- [ ] `ENVIRONMENT=production` (activates the weak-secret startup guard)
+- [ ] Strong, random `SECRET_KEY` (32+ chars) from a secret manager
+- [ ] `COOKIE_SECURE=true` and HTTPS everywhere (TLS via Let's Encrypt / cloud)
+- [ ] `CORS_ORIGINS` restricted to your real frontend origin
+- [ ] `TRUST_PROXY=true` only if behind a proxy you control
+- [ ] `ENABLE_DOCS=false` (Swagger/ReDoc off in production — the default)
+- [ ] Strong `DATABASE_URL` credentials
+- [ ] Separate production OAuth clients with HTTPS callback URLs
 
 **Database:**
 - [ ] Set up production PostgreSQL instance
 - [ ] Configure automated backups
-- [ ] Add database indexes (see Database Design Document §6)
-- [ ] Set up Alembic for migrations
+- [ ] Run `uv run alembic upgrade head` on deploy
 
 ### 6.2 Backend Production Start
 ```bash
-# Production: no --reload, explicit workers
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+# Production: no reload, explicit workers, bind all interfaces
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-Or with gunicorn:
+Or with gunicorn (add it to the project first via `uv add gunicorn`):
 ```bash
-pip install gunicorn
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+uv run gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
 ### 6.3 Frontend Production Build
@@ -282,23 +310,17 @@ app.add_middleware(
 
 ## 7. Database Initialization
 
-There is no migration tool configured in v1. Tables are created via SQLAlchemy's `create_all` triggered by model imports.
+The schema is managed by **Alembic** (migrations live in `backend/alembic/versions/`). After creating an empty `promptnest` database, apply all migrations:
 
-**To initialize the database on first deploy:**
-```python
-# Run this once, or add to main.py startup event
-from app.database import Base, engine
-from app.models import *  # imports all models
-Base.metadata.create_all(bind=engine)
+```bash
+cd backend
+uv run alembic upgrade head
 ```
 
-**For production (recommended):** Set up Alembic:
+To create a new migration after changing a model:
 ```bash
-pip install alembic
-alembic init alembic
-# Configure alembic.ini with DATABASE_URL
-alembic revision --autogenerate -m "initial schema"
-alembic upgrade head
+uv run alembic revision --autogenerate -m "describe change"
+uv run alembic upgrade head
 ```
 
 ---
@@ -323,11 +345,12 @@ alembic upgrade head
 ```dockerfile
 # backend/Dockerfile
 FROM python:3.11-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ```yaml
@@ -378,10 +401,51 @@ curl https://api.yourdomain.com/db-test
 # Register a test user
 curl -X POST https://api.yourdomain.com/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"test","email":"test@test.com","password":"test123"}'
-# Expected: HTTP 201
+  -d '{"username":"test_user","email":"test@test.com","password":"testpass123"}'
+# Expected: HTTP 201  (password must be 8-72 chars; username 3-50, [A-Za-z0-9_])
 
 # Frontend
 curl https://yourdomain.com
 # Expected: HTML page with <title>PromptNest</title>
 ```
+
+---
+
+## Migration & Release Checklist (Codex #25)
+
+Run before every deploy that ships schema changes:
+
+1. **One head.** `alembic heads` must show exactly one revision. If it shows
+   more, merge them (`alembic merge`) before deploying.
+2. **Know the current state.** `alembic current` against the target database.
+3. **Back up** the database (or confirm the managed snapshot) before upgrading.
+4. **Upgrade.** `alembic upgrade head`.
+   - Note: the migration chain is *not* from-scratch — it assumes the base
+     `users`/`refresh_tokens` tables already exist (they were created by the
+     initial `Base.metadata.create_all`). A brand-new database must be
+     bootstrapped with the app's `create_all` once, then stamped
+     (`alembic stamp head`) before incremental migrations apply cleanly.
+   - `20260716_email_lower_unique` **aborts** if case-insensitive duplicate
+     emails exist. Resolve them by hand first:
+     `SELECT lower(email), count(*) FROM users GROUP BY 1 HAVING count(*) > 1;`
+5. **Model/schema drift.** `alembic revision --autogenerate` should produce an
+   empty migration (delete it). A non-empty diff means the models and the DB
+   have drifted.
+6. **Smoke test** login → refresh → logout against staging before tagging.
+
+### Scheduled jobs
+
+- **Token cleanup** (`uv run python -m app.jobs.token_cleanup`): nightly. Purges
+  refresh tokens revoked/expired > 30 days ago, sweeps expired OAuth
+  transactions, and logs a LEAK ALERT for any user with > 50 live sessions.
+
+### Product rename (PromptNest → PromptVault) — deferred, do as its own PR
+
+This is intentionally **not** bundled with functional changes. When executed:
+
+- Repo-wide code/doc string rename.
+- Rename the OAuth apps in the Google Cloud Console and GitHub OAuth App
+  settings, and update their redirect URIs.
+- Update `DATABASE_URL` database name and any deployment secrets in a
+  coordinated infra change (requires a DB rename or migration, not just a code
+  edit).

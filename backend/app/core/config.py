@@ -40,12 +40,25 @@ if IS_PRODUCTION and (SECRET_KEY.strip().lower() in _WEAK_SECRETS or len(SECRET_
     )
 
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+# Access tokens live in browser memory only and are refreshed on every page load,
+# so a short ceiling is cheap. 5 minutes bounds the damage of an in-flight leak.
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "5"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+
+# Ephemeral ("do not remember me") sessions are enforced server-side: a session
+# idles out after IDLE_TIMEOUT_MINUTES of no requests, and is capped absolutely at
+# EPHEMERAL_ABSOLUTE_CAP_HOURS regardless of activity. The client cannot reliably
+# detect "browser closed", so the server clock is the authority.
+IDLE_TIMEOUT_MINUTES = int(os.getenv("IDLE_TIMEOUT_MINUTES", "30"))
+EPHEMERAL_ABSOLUTE_CAP_HOURS = int(os.getenv("EPHEMERAL_ABSOLUTE_CAP_HOURS", "12"))
 CORS_ORIGINS = csv_env(
     "CORS_ORIGINS",
     "http://localhost:3000,http://127.0.0.1:3000",
 )
+# Origins allowed to drive the cookie-authenticated, state-changing endpoints
+# (/auth/refresh, /auth/logout). Same set as CORS by default; kept as its own
+# name so CSRF policy can diverge from CORS later without confusion.
+TRUSTED_ORIGINS = tuple(origin.rstrip("/") for origin in CORS_ORIGINS)
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 # Trust X-Forwarded-For for the client IP. Only enable this behind a reverse
@@ -76,3 +89,26 @@ GITHUB_REDIRECT_URI = os.getenv(
     "GITHUB_REDIRECT_URI",
     "http://127.0.0.1:8000/api/v1/auth/oauth/github/callback",
 )
+
+
+# Fail fast in production rather than silently shipping an insecure deployment.
+# A process that refuses to boot is infinitely easier to notice than a cookie
+# quietly sent over HTTP or a half-configured OAuth provider.
+if IS_PRODUCTION:
+    _problems: list[str] = []
+    if not COOKIE_SECURE:
+        _problems.append("COOKIE_SECURE must be true in production")
+    for _name, _id, _secret, _redirect in (
+        ("Google", GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI),
+        ("GitHub", GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_REDIRECT_URI),
+    ):
+        # A provider is "in use" once its client id/secret is set. Only then do we
+        # demand a complete, https redirect — the default http://127.0.0.1 redirect
+        # is harmless when the provider is disabled.
+        if any((_id, _secret)):
+            if not all((_id, _secret, _redirect)):
+                _problems.append(f"{_name} OAuth is partially configured (need client id, secret, and redirect URI)")
+            elif _redirect.startswith("http://"):
+                _problems.append(f"{_name} OAuth redirect URI must use https in production")
+    if _problems:
+        raise RuntimeError("Refusing to start: " + "; ".join(_problems))

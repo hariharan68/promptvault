@@ -70,9 +70,9 @@ PromptNest solves this by acting as a personal prompt library with a clean, fast
 | Feature | Detail |
 |---|---|
 | Register | Username + email + password. Duplicate username/email blocked. |
-| Login | Email + password. Returns JWT access token (30-minute expiry). |
+| Login | Email + password (+ "keep me signed in"). Returns a 5-minute in-memory JWT access token; a rotating HttpOnly refresh cookie renews it. |
 | Me | Returns current user profile from token. |
-| Auth persistence | Token stored in `localStorage`; auto-attached to every request via Axios interceptor. |
+| Auth persistence | Access token in memory only; the HttpOnly refresh cookie restores the session on app load via `POST /auth/refresh`. Auto-attached to every request via Axios interceptor. |
 | Session expiry | 401 responses automatically clear token and redirect to `/login`. |
 
 **Acceptance Criteria:**
@@ -195,12 +195,12 @@ Sidebar shows "Dashboard", "All Prompts", then all groups → click group → /p
 
 | Constraint | Detail |
 |---|---|
-| Platform | Web only (desktop-first) |
-| Auth | JWT only; no OAuth / social login in v1 |
-| Database | PostgreSQL (psycopg2-binary) |
-| Password | Max 72 bytes (bcrypt limitation, enforced in code) |
-| Token expiry | 30 minutes; no refresh token in v1 (model exists, not wired) |
-| Secret key | Hardcoded in `security.py` — must be moved to env before production |
+| Platform | Web only (responsive; desktop-first) |
+| Auth | JWT access + rotating refresh cookie; Google & GitHub OAuth |
+| Database | PostgreSQL (psycopg2-binary), database `promptnest` |
+| Password | 8–72 chars, enforced server-side (bcrypt 72-byte limit) |
+| Token expiry | 30-min access token, revocable; 30-day rotating refresh token |
+| Secret key | Loaded from environment; production startup guard rejects weak values |
 
 ---
 
@@ -208,8 +208,8 @@ Sidebar shows "Dashboard", "All Prompts", then all groups → click group → /p
 
 | Risk | Mitigation |
 |---|---|
-| JWT secret key in source code | Move to environment variable before any deployment |
-| No refresh tokens in v1 | Users re-login every 30 min; acceptable for v1, implement in v2 |
-| No rate limiting | Add per-IP rate limiting before public launch |
+| Access token in `localStorage` (XSS) | Mitigated by CSP + token revocation; HttpOnly cookie is future work |
+| In-memory rate limiter | Fine single-instance; use shared store (Redis) at scale |
 | Soft deletes not purged | Schedule periodic hard-delete of old soft-deleted records |
-| Tags not returned in PromptResponse | Current schema does not include tags in response — must be added |
+
+**Resolved since v1:** JWT secret moved to env, refresh tokens + revocation, rate limiting, and tags in `PromptResponse` are all implemented (see Security Document).

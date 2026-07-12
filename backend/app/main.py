@@ -16,7 +16,7 @@ from app.routers.groups import router as groups_router
 from app.routers.tags import router as tags_router
 from app.routers.prompts import router as prompts_router
 from app.routers.dashboard import router as dashboard_router
-from app.core.config import CORS_ORIGINS, ENABLE_DOCS
+from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES, CORS_ORIGINS, ENABLE_DOCS
 
 app = FastAPI(
     title="PromptNest",
@@ -28,6 +28,8 @@ app = FastAPI(
 )
 
 logger = logging.getLogger("promptnest.api")
+# Surface the token lifetime at boot so drift between docs and deployment is visible.
+logger.info("startup access_token_expire_minutes=%s", ACCESS_TOKEN_EXPIRE_MINUTES)
 
 app.add_middleware(
     CORSMiddleware,
