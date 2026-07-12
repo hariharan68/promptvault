@@ -1,34 +1,45 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getMe, logout as logoutApi, refresh } from "../api/authApi.js";
+import { setToken, beginLogout, currentEpoch } from "../api/authState.js";
+import { useToast } from "../components/common/Toast.jsx";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    const session = token
-      ? getMe()
-      : refresh().then(({ data }) => {
-          localStorage.setItem("access_token", data.access_token);
-          return getMe();
-        });
-    session
+    // The access token lives in memory only, so a cold load always has nothing.
+    // Ask the server to resume from the httpOnly refresh cookie; a 401 just means
+    // "not signed in" and the app falls through to the login/landing page.
+    refresh()
+      .then(({ data }) => {
+        setToken(data.access_token, currentEpoch());
+        return getMe();
+      })
       .then((res) => setUser(res.data))
-      .catch(() => localStorage.removeItem("access_token"))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   function saveToken(token) {
-    localStorage.setItem("access_token", token);
+    setToken(token, currentEpoch());
   }
 
-  function logout() {
-    logoutApi().catch(() => {});
-    localStorage.removeItem("access_token");
+  async function logout() {
+    // Local-first: the UI is signed out immediately and the epoch bump prevents any
+    // in-flight refresh from restoring the session. The server call is best-effort.
+    beginLogout();
     setUser(null);
+    try {
+      await logoutApi();
+    } catch {
+      toast?.info(
+        "Signed out on this device, but couldn't reach the server. If this device is shared, use \"Sign out other sessions\" from another session.",
+      );
+    }
   }
 
   return (

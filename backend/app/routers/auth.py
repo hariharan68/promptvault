@@ -4,7 +4,10 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from app.core.csrf import require_trusted_origin
+from app.core.db_errors import is_unique_violation
 from app.core.dependencies import get_current_user
 from app.database import get_db
 from app.schemas.user import UserCreate, UserResponse
@@ -43,16 +46,19 @@ router = APIRouter(
 OAUTH_COOKIE_PATH = "/api/v1/auth/oauth"
 
 
-def _set_refresh_cookie(response: Response, token: str) -> None:
-    response.set_cookie(
-        "refresh_token",
-        token,
-        httponly=True,
-        secure=COOKIE_SECURE,
-        samesite="lax",
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400,
-        path="/api/v1/auth",
-    )
+def _set_refresh_cookie(response: Response, token: str, persistent: bool) -> None:
+    # Persistent ("remember me") sessions get a dated cookie; ephemeral sessions
+    # get a session cookie (no Max-Age). The session cookie is only a best-effort
+    # accelerator — the server's idle-timeout clock is the real authority.
+    cookie_options = {
+        "httponly": True,
+        "secure": COOKIE_SECURE,
+        "samesite": "lax",
+        "path": "/api/v1/auth",
+    }
+    if persistent:
+        cookie_options["max_age"] = REFRESH_TOKEN_EXPIRE_DAYS * 86400
+    response.set_cookie("refresh_token", token, **cookie_options)
 
 
 def _frontend_oauth_redirect(error: str | None = None) -> RedirectResponse:
@@ -61,26 +67,41 @@ def _frontend_oauth_redirect(error: str | None = None) -> RedirectResponse:
     response.headers["Cache-Control"] = "no-store"
     response.delete_cookie("oauth_state", path=OAUTH_COOKIE_PATH)
     response.delete_cookie("oauth_pkce", path=OAUTH_COOKIE_PATH)
+    response.delete_cookie("oauth_remember", path=OAUTH_COOKIE_PATH)
     return response
+
+
+_ACCOUNT_TAKEN_DETAIL = "That email or username is already taken"
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     enforce_rate_limit(request, "register", 10)
 
+    # Fast, friendly pre-check — but NOT the authority. Two concurrent requests
+    # can both pass this and then race on INSERT; the unique constraints below
+    # are what actually guarantee uniqueness.
     if get_user_by_email(db, user_data.email) or get_user_by_username(db, user_data.username):
         # Generic message — do not reveal which field is taken (enumeration).
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="That email or username is already taken"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_ACCOUNT_TAKEN_DETAIL)
 
-    return create_user(db, user_data)
+    try:
+        return create_user(db, user_data)
+    except IntegrityError as exc:
+        # The race loser lands here: a concurrent request won the unique index.
+        # Same uniform 409 as the pre-check — no field leak, no 500.
+        db.rollback()
+        if is_unique_violation(exc):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_ACCOUNT_TAKEN_DETAIL)
+        raise
 
 
 @router.post("/login", response_model=TokenResponse)
 def login(request: Request, response: Response, login_data: LoginRequest, db: Session = Depends(get_db)):
     enforce_rate_limit(request, "login", 5)
+    # Also throttle attempts against a single account regardless of source IP, so
+    # a distributed guessing attack on one email can't sidestep the per-IP limit.
+    enforce_rate_limit(request, "login_acct", 10, identity=login_data.email)
     user = authenticate_user(db, login_data)
 
     if not user:
@@ -89,9 +110,10 @@ def login(request: Request, response: Response, login_data: LoginRequest, db: Se
             detail="Invalid email or password"
         )
 
-    access_token = create_login_token(user)
-    refresh_token = create_refresh_token(db, user)
-    _set_refresh_cookie(response, refresh_token)
+    session_policy = "persistent" if login_data.remember_me else "ephemeral"
+    refresh_token, family_id = create_refresh_token(db, user, session_policy)
+    access_token = create_login_token(user, sid=family_id)
+    _set_refresh_cookie(response, refresh_token, persistent=login_data.remember_me)
 
     return {
         "access_token": access_token,
@@ -99,18 +121,21 @@ def login(request: Request, response: Response, login_data: LoginRequest, db: Se
     }
 
 
-@router.post("/refresh", response_model=TokenResponse)
-def refresh(response: Response, refresh_token: str | None = Cookie(default=None), db: Session = Depends(get_db)):
+@router.post("/refresh", response_model=TokenResponse, dependencies=[Depends(require_trusted_origin)])
+def refresh(request: Request, response: Response, refresh_token: str | None = Cookie(default=None), db: Session = Depends(get_db)):
+    # Generous: a legitimate client refreshes at most once per ~5 min per tab, so
+    # 20/min per IP only bites credential-stuffing loops, not real usage.
+    enforce_rate_limit(request, "refresh", 20)
     rotated = rotate_refresh_token(db, refresh_token) if refresh_token else None
     if not rotated:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
-    user, new_refresh_token = rotated
-    _set_refresh_cookie(response, new_refresh_token)
-    return {"access_token": create_login_token(user), "token_type": "bearer"}
+    user, new_refresh_token, family_id, session_policy = rotated
+    _set_refresh_cookie(response, new_refresh_token, persistent=(session_policy == "persistent"))
+    return {"access_token": create_login_token(user, sid=family_id), "token_type": "bearer"}
 
 
 @router.get("/oauth/{provider}/start")
-def oauth_start(provider: str, request: Request):
+def oauth_start(provider: str, request: Request, remember_me: bool = Query(default=False)):
     enforce_rate_limit(request, f"oauth_start:{provider}", 20)
     if provider not in SUPPORTED_PROVIDERS:
         raise HTTPException(status_code=404, detail="Unsupported OAuth provider")
@@ -130,6 +155,9 @@ def oauth_start(provider: str, request: Request):
     }
     response.set_cookie("oauth_state", state_token, **cookie_options)
     response.set_cookie("oauth_pkce", verifier, **cookie_options)
+    # Carry the remember-me choice through the round-trip so the callback can pick
+    # the session policy (the OAuth provider round-trip has no other place for it).
+    response.set_cookie("oauth_remember", "1" if remember_me else "0", **cookie_options)
     return response
 
 
@@ -142,9 +170,10 @@ async def oauth_callback(
     provider_error: str | None = Query(default=None, alias="error"),
     oauth_state: str | None = Cookie(default=None),
     oauth_pkce: str | None = Cookie(default=None),
+    oauth_remember: str | None = Cookie(default=None),
     db: Session = Depends(get_db),
 ):
-    enforce_rate_limit(request, f"oauth_callback:{provider}", 30)
+    enforce_rate_limit(request, f"oauth_callback:{provider}", 10)
     if provider not in SUPPORTED_PROVIDERS:
         return _frontend_oauth_redirect("unsupported_provider")
     if provider_error:
@@ -154,19 +183,21 @@ async def oauth_callback(
     if not hmac.compare_digest(state_token, oauth_state):
         return _frontend_oauth_redirect("invalid_oauth_state")
 
+    remember_me = oauth_remember == "1"
+    session_policy = "persistent" if remember_me else "ephemeral"
     try:
         profile = await fetch_oauth_profile(provider, code, oauth_pkce)
         user = login_or_create_oauth_user(db, profile)
-        refresh_token = create_refresh_token(db, user)
+        refresh_token, _family_id = create_refresh_token(db, user, session_policy)
     except OAuthError as exc:
         return _frontend_oauth_redirect(exc.code)
 
     response = _frontend_oauth_redirect()
-    _set_refresh_cookie(response, refresh_token)
+    _set_refresh_cookie(response, refresh_token, persistent=remember_me)
     return response
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_trusted_origin)])
 def logout(response: Response, refresh_token: str | None = Cookie(default=None), db: Session = Depends(get_db)):
     revoke_refresh_token(db, refresh_token)
     response.delete_cookie("refresh_token", path="/api/v1/auth")

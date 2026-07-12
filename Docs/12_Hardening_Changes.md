@@ -11,8 +11,8 @@ are configured through `CORS_ORIGINS`.
 From the `backend` directory:
 
 ```powershell
-pip install -r requirements.txt
-alembic upgrade head
+uv sync
+uv run alembic upgrade head
 ```
 
 The migration creates refresh-token storage, per-user group/tag uniqueness, and

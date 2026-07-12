@@ -1,13 +1,25 @@
 # Functional Specification Document
 # PromptNest
 
-**Version:** 1.0  
-**Date:** 2026-07-09
+**Version:** 2.0  
+**Date:** 2026-07-11
 
 ---
 
 ## 1. Purpose
 This document describes the exact behavior of every feature in PromptNest — what each screen shows, what each action does, and what each API endpoint returns. It bridges the PRD (what we want) and the SRS (what we require) with the concrete behavior visible in the code.
+
+### Route map (current)
+
+| Route | Access | Purpose |
+|---|---|---|
+| `/` | Public | Marketing **Landing page** (redirects to `/dashboard` if signed in) |
+| `/docs` | Public | Product **Documentation** (three-pane) |
+| `/login`, `/register` | Public | Auth (email/password + Google/GitHub) |
+| `/oauth/callback` | Public | Completes the OAuth session |
+| `/dashboard`, `/prompts`, `/groups`, `/settings`, `/trash` | Protected | The app |
+
+Newer authenticated features documented in later sections / Swagger: **version history**, **Trash & restore**, **template variables**, **import/export**, and **OAuth sign-in**.
 
 ---
 
@@ -91,7 +103,7 @@ This document describes the exact behavior of every feature in PromptNest — wh
    - Each group is a NavLink: `/prompts?group_id=<uuid>`.
 4. **Footer:**
    - Current username displayed.
-   - "Logout" button: clears `localStorage` token, sets user to null, redirects to `/login`.
+   - "Logout" button: revokes the refresh token, clears the `localStorage` access token, sets user to null, and redirects to `/` (landing page).
 
 **Data:** Groups loaded once on mount via `GET /api/v1/groups/`.
 

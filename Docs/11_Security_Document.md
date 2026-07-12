@@ -1,14 +1,16 @@
 # Security Document
 # PromptNest
 
-**Version:** 1.0  
-**Date:** 2026-07-09
+**Version:** 2.0
+**Date:** 2026-07-11
 
 ---
 
 ## 1. Security Overview
 
-PromptNest is a personal prompt management application with user authentication and user-scoped data isolation. This document covers the security controls currently implemented, known vulnerabilities, and required fixes before any production deployment.
+PromptNest is a personal prompt management application with user authentication and strict user-scoped data isolation. This document describes the security controls currently implemented, the residual risks, and the checklist for production.
+
+The current build has been through a security hardening pass. Most items previously listed as "required fixes" are now implemented; see §7 for what remains.
 
 ---
 
@@ -18,365 +20,248 @@ PromptNest is a personal prompt management application with user authentication 
 
 **Implementation:** `app/core/security.py`
 
-```python
-from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-```
+- Passwords hashed with **bcrypt** via passlib (`CryptContext(schemes=["bcrypt"])`).
+- `bcrypt` is pinned to `<4.1` in `pyproject.toml` for passlib compatibility (newer bcrypt breaks passlib's backend).
+- The **72-byte bcrypt limit** is enforced explicitly on both hash and verify.
+- **Server-side password policy** (Pydantic): `password` must be **8–72 characters**; `username` must be **3–50 chars** matching `[A-Za-z0-9_]`. This is enforced in the API, not just the UI, so it cannot be bypassed by calling the endpoint directly.
 
-**Controls:**
-- Passwords hashed with **bcrypt** (work factor ~12 by default in passlib).
-- bcrypt is a slow, adaptive hash function specifically designed for passwords.
-- Verification uses `pwd_context.verify(plain, hashed)` — constant-time comparison.
-- **72-byte limit enforced:** bcrypt silently truncates inputs > 72 bytes, so PromptNest enforces this explicitly:
-
-```python
-def hash_password(password: str) -> str:
-    if len(password.encode("utf-8")) > 72:
-        raise ValueError("Password cannot be longer than 72 bytes")
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    if len(plain_password.encode("utf-8")) > 72:
-        return False
-    return pwd_context.verify(plain_password, hashed_password)
-```
-
-**Status:** ✅ Implemented correctly.
+**Status:** ✅ Implemented.
 
 ---
 
-### 2.2 JWT Tokens
+### 2.2 JWT Access Tokens
 
-**Implementation:** `app/core/security.py`
+**Implementation:** `app/core/security.py`, `app/core/config.py`
 
-```python
-SECRET_KEY = "change_this_secret_key_later"  # ⚠️ MUST CHANGE
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-```
+- `SECRET_KEY` is loaded from the environment (`required_env`) — **never hardcoded**.
+- In `ENVIRONMENT=production`, the app **refuses to start** if `SECRET_KEY` is a known placeholder or shorter than 32 characters.
+- Algorithm `HS256`, access-token lifetime 30 minutes (configurable).
 
 **JWT payload:**
 ```json
 {
-  "sub": "<user-uuid-string>",
+  "sub": "<user-uuid>",
   "email": "user@example.com",
-  "exp": 1720521600
+  "ver": 0,
+  "iat": 1720521600,
+  "nbf": 1720521600,
+  "exp": 1720523400
 }
 ```
 
-**Controls:**
-- Tokens signed with HMAC-SHA256 (`HS256`).
-- 30-minute expiry — short enough to limit damage from token theft.
-- `sub` claim is the user's UUID (not username or email, which can change).
-- Token decoded and verified on every protected request.
+- `sub` is the user's UUID (stable identifier).
+- `iat` / `nbf` / `exp` are all set; jose validates `nbf`/`exp` on decode.
+- `ver` is the user's **token version** — see §2.4.
 
-**Critical vulnerability:**
-
-| Issue | Severity | Status |
-|---|---|---|
-| `SECRET_KEY` hardcoded as `"change_this_secret_key_later"` | CRITICAL | NOT FIXED |
-
-**Fix required:**
-```python
-# security.py
-import os
-SECRET_KEY = os.environ["SECRET_KEY"]  # Raise if missing — fail fast
-```
-
-**Generate a secure key:**
-```python
-import secrets
-print(secrets.token_hex(32))  # 64 hex chars = 256-bit key
-```
+**Status:** ✅ Implemented (env-based secret, prod guard, full claim set).
 
 ---
 
-### 2.3 Token Storage & Transport
+### 2.3 Refresh Tokens (rotating)
 
-**Frontend storage:** `localStorage.getItem("access_token")`
+**Implementation:** `app/services/auth_service.py`, `app/routers/auth.py`
 
-**Risk:** `localStorage` is accessible to any JavaScript on the page. XSS attack → token theft.
+- Refresh tokens are opaque random strings (`secrets.token_urlsafe(48)`), **stored SHA-256-hashed** in the `refresh_tokens` table — a database leak never exposes usable tokens.
+- Delivered as an **HttpOnly** cookie, `SameSite=Lax`, `Secure=COOKIE_SECURE`, scoped to path `/api/v1/auth`, 30-day lifetime.
+- **Rotate-on-use:** every `/auth/refresh` revokes the old token and issues a new one. The frontend funnels all refreshes through a single in-flight request so concurrent refreshes never race the rotating token.
+- Revoked on logout, password change, and "sign out everywhere".
 
-**v1 decision:** `localStorage` chosen for simplicity. Acceptable for a personal-use tool with no XSS vectors.
-
-**Recommended for production:** Use `HttpOnly` cookies instead. This requires backend to set the cookie and frontend to use `credentials: 'include'` in requests.
-
-**Transport:** Token sent in `Authorization: Bearer <token>` header via Axios request interceptor — not in URL query strings (which get logged).
+**Status:** ✅ Implemented.
 
 ---
 
-### 2.4 Token Validation Flow
+### 2.4 Access-Token Revocation (token version)
+
+Stateless JWTs normally can't be revoked before expiry. PromptNest adds a `users.token_version` integer that is embedded in each access token as `ver`. `get_current_user` (which already loads the user) compares the token's `ver` against the user's current value:
 
 ```python
-# app/core/dependencies.py
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
+if token_version is None or token_version != user.token_version:
+    raise HTTPException(401, "Token has been revoked")
 ```
 
-**Controls:**
-- Expired tokens raise `JWTError` → 401 response.
-- Tampered tokens fail signature verification → 401 response.
-- Deleted users (user_id not found in DB) → 401 response.
-- `HTTPBearer` security scheme — requires `Authorization: Bearer` format; missing header → 403.
+`token_version` is incremented on **password change** and **"sign out everywhere"**, so those actions invalidate all outstanding access tokens immediately (not just refresh tokens).
+
+**Status:** ✅ Implemented (migration `20260714_token_version`).
+
+---
+
+### 2.5 Token Storage & Transport
+
+- **Access token:** browser `localStorage`, sent as `Authorization: Bearer <token>` (never in URLs).
+- **Refresh token:** HttpOnly cookie (not readable by JavaScript).
+
+**Residual risk:** the access token in `localStorage` is readable by any JavaScript, so an XSS bug could exfiltrate it. This is mitigated by (a) the strict app-wide CSP (§6.4), and (b) token-version revocation — a stolen token can be killed via "sign out everywhere". Moving the access token to an HttpOnly cookie + CSRF tokens is the recommended future hardening.
+
+---
+
+### 2.6 Anti-Enumeration
+
+- **Registration** returns a single generic message ("That email or username is already taken") — it does not reveal which field collided.
+- **Login** runs a dummy bcrypt verify on the no-such-user path so a missing account takes the same time as a wrong password (no timing side-channel).
+- Ownership failures return **404** (not 403), so an attacker learns nothing about whether a resource exists.
+
+**Status:** ✅ Implemented.
 
 ---
 
 ## 3. Authorization (Data Isolation)
 
-### 3.1 User Scoping
-
-Every data query includes `user_id == current_user.id`. No user can access another user's resources.
-
-**Example — prompt list:**
-```python
-query = db.query(Prompt).filter(
-    Prompt.user_id == user_id,    # ← always required
-    Prompt.deleted_at.is_(None)   # ← soft-delete filter
-)
-```
-
-**Example — group get by ID:**
-```python
-db.query(Group).filter(
-    Group.id == group_id,
-    Group.user_id == user_id  # ← ownership check
-).first()
-```
-
-If a resource belongs to another user, the query returns `None`, and the router raises HTTP 404. This response is intentionally ambiguous (404, not 403) — the attacker learns nothing about whether the resource exists.
+Every query is scoped with `user_id == current_user.id`. No user can read or modify another user's prompts, groups, tags, versions, or sessions. Ownership failures return HTTP 404 (intentionally ambiguous).
 
 **Status:** ✅ Consistently applied across all services.
 
----
-
-### 3.2 Missing Controls (v1)
-
-| Missing Control | Risk | Priority |
-|---|---|---|
-| No role-based access control (RBAC) | Single role only; all users equal | Low (v1 scope) |
-| No team/org scoping | Not applicable in v1 | Low |
-| Soft-deleted data queryable by DB admin | Not user-facing | Low |
+| Not in scope (by design) | Note |
+|---|---|
+| Role-based access control | Single role; all users equal |
+| Team / org sharing | On the roadmap |
 
 ---
 
 ## 4. Input Validation
 
-### 4.1 Request Body Validation (Pydantic)
+### 4.1 Request Validation (Pydantic)
 
-FastAPI uses Pydantic for automatic request body validation. Invalid input returns HTTP 422 with detailed error messages.
-
-**Validated fields:**
 | Field | Validation |
 |---|---|
-| email | `EmailStr` — valid email format |
-| username | `str` type, max 50 chars |
-| group.name | `str`, max 100 chars |
-| tag.name | `str`, max 50 chars |
-| prompt.title | `str`, max 200 chars |
-| UUID params | FastAPI parses `UUID` type path/query params |
-| bool params | FastAPI parses `bool` (accepts `true`/`false`/`1`/`0`) |
+| email | `EmailStr` |
+| username (create) | 3–50 chars, `[A-Za-z0-9_]` |
+| password (create / change) | 8–72 chars |
+| import payload | list capped at 500 items |
+| group.name | max 100 chars |
+| tag.name | max 50 chars |
+| prompt.title | max 200 chars |
+| UUID / bool params | parsed & validated by FastAPI |
 
-### 4.2 SQL Injection Prevention
+Invalid input returns HTTP 422.
 
-All queries use SQLAlchemy ORM with parameterized queries. Direct string interpolation into SQL is never used.
+### 4.2 SQL Injection
 
-```python
-# Safe — parameterized
-query.filter(Prompt.title.ilike(f"%{q}%"))
-# SQLAlchemy sends: WHERE title ILIKE $1, params=('%python%',)
-```
+All access uses the **SQLAlchemy ORM** with parameterized queries; no string-built SQL. ✅
 
-**Status:** ✅ ORM usage throughout prevents SQL injection.
+### 4.3 XSS
 
-### 4.3 XSS Prevention
-
-The React frontend renders user content as:
-- Text content in JSX (React auto-escapes) — ✅ safe
-- `<pre>` block for `prompt_content` — ✅ safe (text, not innerHTML)
-- Tag names in `<span>` — ✅ safe
-
-No `dangerouslySetInnerHTML` used anywhere.
-
-**Status:** ✅ No XSS vectors in current implementation.
+React auto-escapes rendered content; prompt content renders as text, not HTML; **no `dangerouslySetInnerHTML`** anywhere (including the docs page). ✅
 
 ---
 
-## 5. Sensitive Data Exposure
+## 5. Sensitive Data
 
 ### 5.1 Password Hash
+Excluded from all API responses via `UserResponse` (never serialized).
 
-The `password_hash` field on the `User` model is intentionally excluded from all API responses via the `UserResponse` Pydantic schema, which only includes:
-```python
-class UserResponse(UserBase):
-    id: UUID
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    # password_hash NOT included
-```
+### 5.2 Secrets & `.env`
 
-**Verified:** Test `check("password_hash" not in register_data, "Password hash not returned")` passes.
+| Secret | State |
+|---|---|
+| `SECRET_KEY` | ✅ Environment variable; prod startup guard rejects weak values |
+| `DATABASE_URL` | ✅ Environment variable |
+| OAuth client secrets | ✅ Environment variables (blank = provider disabled) |
 
-### 5.2 Environment Variables
-
-| Secret | Current State | Required State |
-|---|---|---|
-| `DATABASE_URL` | In `.env` file | ✅ Environment variable (not in source) |
-| `SECRET_KEY` | **Hardcoded in source** | ❌ Must move to environment variable |
-| DB password | In `.env` as `admin` | Acceptable for dev; use strong password in prod |
-
-### 5.3 `.env` Files
-
-`.env` files should be in `.gitignore` to prevent committing credentials:
-```
-# .gitignore
-.env
-*.env
-venv/
-__pycache__/
-*.pyc
-```
+`.env`, `*.env`, `venv/`, `.venv/`, and `__pycache__/` are git-ignored.
 
 ---
 
 ## 6. API Security
 
 ### 6.1 CORS
-
-**Current state:** No `CORSMiddleware` configured. In development, the Vite proxy eliminates the need for CORS headers. In production, browser requests from the frontend domain will be blocked by CORS.
-
-**Required before production:**
-```python
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://yourdomain.com"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
-)
-```
+Configured in `main.py` with an explicit origin allowlist (`CORS_ORIGINS`) and `allow_credentials=True`. In production, set `CORS_ORIGINS` to the real frontend origin only. ✅
 
 ### 6.2 Rate Limiting
+Custom sliding-window limiter (`app/core/rate_limit.py`), keyed on action + client IP:
 
-**Current state:** No rate limiting implemented.
+| Endpoint | Limit (per 60s) |
+|---|---|
+| `POST /auth/login` | 5 |
+| `POST /auth/register` | 10 |
+| `GET /auth/oauth/*/start` | 20 |
+| `GET /auth/oauth/*/callback` | 30 |
 
-**Risks:**
-- Brute-force login attempts against `/auth/login`
-- Account enumeration via registration endpoint error messages
-- DoS via repeated expensive queries
+Client IP uses `X-Forwarded-For` **only** when `TRUST_PROXY=true` (so clients can't spoof it otherwise).
 
-**Recommended solution:**
-```python
-pip install slowapi
-# Add rate limiting to auth endpoints:
-@router.post("/login")
-@limiter.limit("5/minute")
-def login(...):
-```
+**Residual risk:** the store is in-memory and per-process — it resets on restart and isn't shared across workers/instances. For multi-instance production, back it with a shared store (e.g. Redis).
 
-### 6.3 HTTPS
-
-**Current state:** HTTP only (development).
-
-**Required for production:** All traffic must be served over HTTPS (TLS 1.2+). Never transmit JWT tokens over HTTP.
+### 6.3 HTTPS & Cookies
+Set `COOKIE_SECURE=true` and serve over HTTPS in production. The `Strict-Transport-Security` header is added automatically on HTTPS responses.
 
 ### 6.4 Security Headers
-
-**Not implemented in v1.** Recommended headers for production:
+Applied to every response by the `security_headers` middleware:
 ```
-Strict-Transport-Security: max-age=31536000; includeSubDomains
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'
 Referrer-Policy: strict-origin-when-cross-origin
+Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'
+Strict-Transport-Security: max-age=31536000; includeSubDomains   (HTTPS only)
+X-Request-ID: <uuid>
 ```
+The CSP is relaxed **only** for `/docs` and `/redoc` (Swagger/ReDoc need the jsDelivr CDN + inline init scripts). Every application route keeps the strict policy.
+
+### 6.5 API Docs Exposure
+Swagger (`/docs`), ReDoc (`/redoc`), and the OpenAPI schema are gated by `ENABLE_DOCS` and **disabled by default in production**.
 
 ---
 
-## 7. Known Security Issues — Priority Order
+## 7. Known Security Issues — Current Status
 
-| # | Issue | Severity | Action |
+| # | Issue | Severity | Status |
 |---|---|---|---|
-| 1 | `SECRET_KEY` hardcoded in source | CRITICAL | Move to env var immediately |
-| 2 | No HTTPS | CRITICAL | Required before any production deploy |
-| 3 | No CORS configuration | HIGH | Blocks production frontend |
-| 4 | No rate limiting on auth endpoints | HIGH | Enables brute-force |
-| 5 | JWT in `localStorage` (XSS risk) | MEDIUM | Migrate to HttpOnly cookies |
-| 6 | No security headers | MEDIUM | Add via Nginx or middleware |
-| 7 | No token revocation | MEDIUM | Implement refresh token + blocklist |
-| 8 | `password: admin` in DB URL | LOW | Use strong credential in production |
-| 9 | No audit logging | LOW | Add structured request logging |
-| 10 | Soft-deleted data never purged | LOW | Schedule cleanup job |
+| 1 | `SECRET_KEY` hardcoded | CRITICAL | ✅ Fixed — env var + prod guard |
+| 2 | No CORS configuration | HIGH | ✅ Fixed |
+| 3 | No rate limiting | HIGH | ✅ Fixed (see §6.2 residual) |
+| 4 | No server-side password policy | HIGH | ✅ Fixed |
+| 5 | User enumeration (register + login timing) | MEDIUM | ✅ Fixed |
+| 6 | No security headers | MEDIUM | ✅ Fixed |
+| 7 | No token revocation | MEDIUM | ✅ Fixed (refresh rotation + token_version) |
+| 8 | Swagger exposed in all envs | MEDIUM | ✅ Fixed (off in prod) |
+| 9 | JWT in `localStorage` (XSS) | MEDIUM | ⚠️ Mitigated; HttpOnly cookie = future work |
+| 10 | Rate limiter in-memory / per-process | LOW | ⚠️ Fine for single instance; use Redis at scale |
+| 11 | No email verification for email signups | LOW | Open (OAuth requires verified email) |
+| 12 | Soft-deleted data never purged | LOW | Open (schedule a cleanup job) |
+| 13 | No persisted audit log | LOW | Open (structured request logging exists, not stored) |
 
 ---
 
-## 8. Security Checklist Before Production
+## 8. Production Security Checklist
 
-### Must-Fix (Blocking)
-- [ ] Move `SECRET_KEY` to environment variable
-- [ ] Set strong, random `SECRET_KEY` (32+ bytes)
-- [ ] Enable HTTPS (TLS)
-- [ ] Add `CORSMiddleware` with specific origin allowlist
-- [ ] Change DB password from `admin`
-
-### Should-Fix (High Priority)
-- [ ] Add rate limiting to `/auth/login` and `/auth/register`
-- [ ] Add security response headers
-- [ ] Set up HTTPS redirect
-- [ ] Add request logging (structured, no PII in logs)
-
-### Nice-to-Have (Pre-Launch)
-- [ ] Implement HttpOnly cookie token storage
-- [ ] Add refresh token flow with revocation
-- [ ] Configure Content-Security-Policy header
-- [ ] Add intrusion detection / anomaly alerting
-- [ ] Regular dependency audit (`pip audit`, `npm audit`)
+- [ ] `ENVIRONMENT=production` (enables the weak-secret startup guard)
+- [ ] Strong, random `SECRET_KEY` (32+ chars) from a secret manager
+- [ ] `COOKIE_SECURE=true` + HTTPS everywhere
+- [ ] `CORS_ORIGINS` restricted to the real frontend origin
+- [ ] `ENABLE_DOCS=false` (default in prod)
+- [ ] `TRUST_PROXY=true` only behind a proxy you control
+- [ ] Strong `DATABASE_URL` credentials (not `admin`)
+- [ ] Separate production OAuth clients with HTTPS callback URLs
+- [ ] (Recommended) shared-store rate limiting for multi-instance
+- [ ] Regular dependency audits
 
 ---
 
 ## 9. Dependency Security
 
-**Backend audit:**
+**Backend (uv):**
 ```bash
-pip install pip-audit
-pip-audit
+uv run pip-audit      # add pip-audit via `uv add --dev pip-audit`
 ```
 
-**Frontend audit:**
+**Frontend:**
 ```bash
 npm audit
-# Current: 2 vulnerabilities (1 moderate, 1 high) in dev dependencies
-npm audit fix
 ```
 
-The 2 current frontend vulnerabilities are in dev dependencies (build tools), not in runtime code shipped to users.
+`bcrypt` is intentionally pinned to `<4.1` for passlib compatibility; do not unpin without testing password login.
 
 ---
 
 ## 10. Data Privacy
 
-| Data | Stored Where | Sensitivity | Notes |
+| Data | Stored | Sensitivity | Notes |
 |---|---|---|---|
-| Email | PostgreSQL `users.email` | Personal | Used only for login |
-| Password | PostgreSQL as bcrypt hash | Sensitive | Never stored in plaintext |
-| Prompt content | PostgreSQL `prompts.prompt_content` | User data | May contain sensitive information the user typed |
-| Usage timestamps | PostgreSQL | Low | When prompts were used |
-| JWT | Browser `localStorage` | Sensitive | Expires in 30 minutes |
+| Email | `users.email` | Personal | Login identity |
+| Password | bcrypt hash | Sensitive | Never plaintext |
+| Prompt content | `prompts.prompt_content` | User data | May contain sensitive text |
+| OAuth link | `oauth_accounts` | Personal | Provider id + email at link; provider tokens **not** stored |
+| Refresh sessions | `refresh_tokens` (hashed) | Sensitive | Rotating, revocable |
+| Access token | browser `localStorage` | Sensitive | 30-minute expiry, revocable via token_version |
 
-**Data not collected:** IP addresses, browser fingerprints, analytics events (v1).
+**Account deletion:** `DELETE /api/v1/auth/account` removes the account; related rows cascade. `GET /api/v1/auth/account/export` lets a user download their data first.
 
-**Data deletion:** Deleting a user account should cascade-delete all their data (enforced by PostgreSQL CASCADE constraints). No user-facing "delete account" endpoint exists in v1.
+**Not collected:** analytics events, browser fingerprints. Client IP is used transiently for rate limiting only.

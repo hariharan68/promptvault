@@ -17,17 +17,25 @@ export default function LoginPage() {
   const { setUser, saveToken } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
+  // The remember-me *preference* is non-sensitive, so it may persist locally; only
+  // the tokens are kept out of storage. The server enforces the actual session policy.
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem("remember_me_pref") === "true");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   function set(key, value) { setForm((prev) => ({ ...prev, [key]: value })); }
+
+  function toggleRemember(checked) {
+    setRememberMe(checked);
+    localStorage.setItem("remember_me_pref", String(checked));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await login(form);
+      const res = await login({ ...form, remember_me: rememberMe });
       saveToken(res.data.access_token);
       const meRes = await getMe();
       setUser(meRes.data);
@@ -107,6 +115,16 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input label="Email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" required />
             <Input label="Password" type="password" value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="••••••••" required />
+
+            <label className="flex items-center gap-2.5 text-sm text-[#6B7280] cursor-pointer select-none -mt-1">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => toggleRemember(e.target.checked)}
+                className="w-4 h-4 rounded border-[#D1D5DB] text-[#714B67] focus:ring-[#714B67]/30 cursor-pointer"
+              />
+              Keep me signed in
+            </label>
 
             {error && (
               <div className="flex items-center gap-2.5 text-sm text-red-500 bg-red-500/6 border border-red-500/20 rounded-xl px-3.5 py-2.5">

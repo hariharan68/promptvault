@@ -34,8 +34,8 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
     <ThemeProvider>
-      <AuthProvider>
-        <ToastProvider>
+      <ToastProvider>
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<HomeGate />} />
             <Route path="/docs" element={<DocsPage />} />
@@ -59,8 +59,8 @@ export default function App() {
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
-        </ToastProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
     </MotionConfig>
   );

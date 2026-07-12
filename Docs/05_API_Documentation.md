@@ -29,9 +29,9 @@ Register a new user account.
 
 | Field | Type | Required | Constraint |
 |---|---|---|---|
-| username | string | Yes | Max 50 chars, unique |
+| username | string | Yes | 3–50 chars, `[A-Za-z0-9_]`, unique |
 | email | string | Yes | Valid email, unique |
-| password | string | Yes | Max 72 bytes |
+| password | string | Yes | 8–72 characters |
 
 **Response 201:**
 ```json
@@ -484,6 +484,7 @@ Verify database connectivity. Executes `SELECT 1`.
 | 403 | Forbidden | Valid token, insufficient permissions |
 | 404 | Not Found | Resource doesn't exist or belongs to another user |
 | 422 | Unprocessable Entity | FastAPI request body validation failure |
+| 429 | Too Many Requests | Rate limit exceeded (auth endpoints) |
 
 ---
 
@@ -493,9 +494,11 @@ Verify database connectivity. Executes `SELECT 1`.
 |---|---|
 | Algorithm | HS256 |
 | Expiry | 30 minutes from issuance |
-| Payload fields | `sub` (user UUID string), `email`, `exp` (expiry timestamp) |
+| Payload fields | `sub` (user UUID), `email`, `ver` (token version), `iat`, `nbf`, `exp` |
 | Storage | Browser `localStorage` key: `access_token` |
 | Transport | `Authorization: Bearer <token>` header |
+| Revocation | `ver` must match `users.token_version`; password change / "sign out everywhere" invalidate all tokens |
+| Session token | Rotating refresh token in an HttpOnly cookie (path `/api/v1/auth`) |
 
 ---
 
@@ -525,4 +528,62 @@ is_favorite, usage_count, last_used_at, deleted_at, created_at, updated_at
 ### TokenResponse
 ```
 access_token, token_type
+```
+
+### PromptResponse (current)
+`PromptResponse` also includes the prompt's `tags` and `variables`.
+
+---
+
+## Complete Endpoint Reference
+
+Beyond the endpoints detailed above, the current API exposes the following. Full
+request/response schemas are available in the interactive Swagger UI at `/docs`
+(enabled in development; disabled in production).
+
+**Auth & account**
+```
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+POST   /api/v1/auth/refresh
+POST   /api/v1/auth/logout
+GET    /api/v1/auth/me
+POST   /api/v1/auth/change-password
+GET    /api/v1/auth/sessions
+POST   /api/v1/auth/sessions/revoke-all
+GET    /api/v1/auth/oauth/{provider}/start      # google | github
+GET    /api/v1/auth/oauth/{provider}/callback
+DELETE /api/v1/auth/account
+GET    /api/v1/auth/account/export
+```
+
+**Prompts**
+```
+GET    /api/v1/prompts                 # list + filter (q, group_id, tag, is_favorite) + paginate
+POST   /api/v1/prompts
+GET    /api/v1/prompts/{id}
+PUT    /api/v1/prompts/{id}
+DELETE /api/v1/prompts/{id}            # soft delete
+POST   /api/v1/prompts/{id}/copy       # copy + increment usage_count
+POST   /api/v1/prompts/{id}/duplicate
+POST   /api/v1/prompts/{id}/favorite
+DELETE /api/v1/prompts/{id}/favorite
+GET    /api/v1/prompts/{id}/versions
+POST   /api/v1/prompts/{id}/restore
+POST   /api/v1/prompts/{id}/versions/{version_id}/restore
+GET    /api/v1/prompts/trash
+GET    /api/v1/prompts/discover/{kind} # most-used | recently-edited | favorites | recent
+POST   /api/v1/prompts/bulk
+POST   /api/v1/prompts/import
+GET    /api/v1/prompts/export          # format=json | csv | markdown
+```
+
+**Groups / Tags / Dashboard**
+```
+GET/POST            /api/v1/groups
+GET/PUT/DELETE      /api/v1/groups/{id}
+GET/POST            /api/v1/tags
+GET                 /api/v1/tags/{id}
+GET                 /api/v1/dashboard/stats
+GET                 /api/v1/dashboard/recent
 ```

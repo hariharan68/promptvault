@@ -18,6 +18,7 @@ from app.core.config import (
     GOOGLE_CLIENT_SECRET,
     GOOGLE_REDIRECT_URI,
 )
+from app.core.normalize import normalize_email
 from app.models.oauth_account import OAuthAccount
 from app.models.user import User
 
@@ -142,7 +143,7 @@ async def fetch_oauth_profile(provider: str, code: str, verifier: str) -> OAuthP
                 return OAuthProfile(
                     provider="google",
                     provider_user_id=str(profile["sub"]),
-                    email=str(profile.get("email", "")).strip().lower(),
+                    email=normalize_email(str(profile.get("email", ""))),
                     email_verified=profile.get("email_verified") is True,
                     username=str(profile.get("name") or profile.get("email", "").split("@")[0]),
                 )
@@ -158,7 +159,7 @@ async def fetch_oauth_profile(provider: str, code: str, verifier: str) -> OAuthP
             return OAuthProfile(
                 provider="github",
                 provider_user_id=str(profile["id"]),
-                email=str((selected_email or {}).get("email", "")).strip().lower(),
+                email=normalize_email(str((selected_email or {}).get("email", ""))),
                 email_verified=selected_email is not None,
                 username=str(profile.get("login") or "github_user"),
             )

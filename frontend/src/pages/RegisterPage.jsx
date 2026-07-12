@@ -27,7 +27,8 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(form);
-      const loginRes = await login({ email: form.email, password: form.password });
+      // Fresh signup: default to a persistent session so a new user isn't idled out.
+      const loginRes = await login({ email: form.email, password: form.password, remember_me: true });
       saveToken(loginRes.data.access_token);
       const meRes = await getMe();
       setUser(meRes.data);

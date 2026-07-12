@@ -1,9 +1,9 @@
 # Project Roadmap
 # PromptNest
 
-**Version:** 1.0  
-**Date:** 2026-07-09  
-**Current Status:** v1.0 Complete (backend + frontend scaffold)
+**Version:** 2.0  
+**Date:** 2026-07-11  
+**Current Status:** v2.x — auth, OAuth, versioning, import/export, security hardening, and public marketing + docs pages all shipped
 
 ---
 
@@ -36,6 +36,35 @@
 - [x] Group sidebar with inline group creation
 - [x] Dark theme with CSS variables
 - [x] Frontend builds with zero errors
+
+---
+
+## Completed Since v1.0 ✅
+
+### Authentication & Security
+- [x] `SECRET_KEY` moved to environment + production weak-secret startup guard
+- [x] Rotating refresh tokens (HttpOnly cookie) + logout revocation
+- [x] Access-token revocation via `token_version` (password change / sign-out-everywhere)
+- [x] Google & GitHub OAuth login (Google with PKCE)
+- [x] Server-side password/username validation
+- [x] CORS middleware, security headers + CSP, rate limiting (anti-enumeration)
+- [x] Swagger disabled in production
+
+### Prompt Features
+- [x] Template variables (`{{variable}}`)
+- [x] Version history + restore
+- [x] Trash (soft delete) + restore
+- [x] Bulk operations, import (JSON), export (JSON/CSV/Markdown)
+- [x] Discover collections (most-used, recently-edited, favorites, recent)
+
+### Platform
+- [x] Pagination on prompt lists; dashboard stats/recent endpoints
+- [x] Alembic migrations
+- [x] Tags returned in `PromptResponse`
+- [x] Tooling moved to **uv** (`pyproject.toml`, `uv run app.py`)
+- [x] Ports standardized (frontend 3000, backend 8000); database `promptnest`
+- [x] Public **Landing page** and **Documentation page** (`/`, `/docs`)
+- [x] Toasts, command palette (⌘K), sort/filter, group management
 
 ---
 
@@ -79,20 +108,19 @@
 
 ---
 
-## v2.0 — Power Features
-**Estimated effort:** 2-3 weeks
+## v2.0 — Power Features (mostly shipped)
 
 ### Auth
-- [ ] Refresh tokens (model already defined in DB, not wired)
-- [ ] Logout endpoint that revokes the refresh token
+- [x] Refresh tokens (rotating, HttpOnly cookie)
+- [x] Logout endpoint that revokes the refresh token
 - [ ] "Remember me" session extension
 
 ### Prompt Enhancements
-- [ ] **Prompt variables** — Template syntax like `{{variable}}` with fill-in-the-blank UI
-- [ ] **Version history** — Track edits to a prompt with diff view
+- [x] **Prompt variables** — `{{variable}}` template syntax
+- [x] **Version history** — track edits + restore
 - [ ] **Prompt rating** — Personal effectiveness score per prompt
-- [ ] **Bulk operations** — Select multiple prompts → move to group, delete, export
-- [ ] **Import/Export** — Export prompts as JSON/CSV, import from JSON
+- [x] **Bulk operations** — move to group, delete, export
+- [x] **Import/Export** — JSON/CSV/Markdown export, JSON import
 
 ### Organization
 - [ ] **Nested groups** — Sub-folders (group hierarchy, max 2 levels)
@@ -138,20 +166,16 @@
 
 ---
 
-## Technical Debt Backlog
+## Technical Debt Backlog (remaining)
 
 | Item | Priority | Notes |
 |---|---|---|
-| Move JWT secret to env | Critical | Security risk in production |
-| Add Alembic migrations | High | Required before any schema changes |
-| Fix duplicate router registration | High | Wastes resources, confusing |
-| Add CORSMiddleware | High | Required for any non-local deployment |
-| Add DB indexes | Medium | Performance at scale |
-| Replace `datetime.utcnow()` | Medium | Python 3.12+ deprecation warning |
-| Add refresh token flow | Medium | 30-min sessions too short for daily use |
-| Add pagination | Medium | Performance with large datasets |
-| Add rate limiting | Medium | Required before public launch |
-| Tags in PromptResponse | High | UI shows empty tag pills currently |
+| Access token → HttpOnly cookie + CSRF | Medium | Removes localStorage XSS exposure (mitigated today) |
+| Shared-store rate limiting (Redis) | Medium | Current limiter is in-memory / per-process |
+| Replace `datetime.utcnow()` | Low | Deprecation warning on newer Python |
+| DB-level unique constraint on `(user_id, name)` | Low | Enforced at app layer today |
+| Purge job for soft-deleted prompts | Low | Data cleanup |
+| Email verification for email signups | Low | OAuth already requires verified email |
 | Async SQLAlchemy | Low | Only needed at significant scale |
 
 ---
@@ -161,3 +185,4 @@
 | Version | Date | Summary |
 |---|---|---|
 | v1.0 | 2026-07-09 | Initial release: full backend (73 tests passing) + frontend scaffold |
+| v2.0 | 2026-07-11 | OAuth login, refresh tokens + token revocation, versioning, trash, import/export, security hardening, uv tooling, rename to PromptNest, public landing + docs pages |
