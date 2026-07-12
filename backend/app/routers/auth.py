@@ -13,7 +13,7 @@ from app.core.dependencies import get_current_user, get_current_session_id
 from app.database import get_db
 from app.schemas.user import UserCreate, UserResponse
 from app.models.user import User
-from app.schemas.auth import LoginRequest, TokenResponse, RegisterResponse
+from app.schemas.auth import LoginRequest, TokenResponse, RegisterResponse, OAuthLinkConfirmRequest
 from app.schemas.product import ChangePasswordRequest
 from app.core.config import COOKIE_SECURE, OAUTH_FRONTEND_CALLBACK_URL, REFRESH_TOKEN_EXPIRE_DAYS
 from app.core.rate_limit import enforce_rate_limit, client_ip
@@ -33,8 +33,11 @@ from app.models.refresh_token import RefreshToken
 from app.models.prompt import Prompt
 from app.services.oauth_service import (
     OAuthError,
+    OAuthLinkRequired,
     SUPPORTED_PROVIDERS,
+    confirm_link_challenge,
     consume_oauth_transaction,
+    create_link_challenge,
     fetch_oauth_profile,
     login_or_create_oauth_user,
     start_oauth_transaction,
@@ -63,8 +66,8 @@ def _set_refresh_cookie(response: Response, token: str, persistent: bool) -> Non
     response.set_cookie("refresh_token", token, **cookie_options)
 
 
-def _frontend_oauth_redirect(error: str | None = None) -> RedirectResponse:
-    query = urlencode({"error": error}) if error else "status=success"
+def _frontend_oauth_redirect(error: str | None = None, status: str = "success") -> RedirectResponse:
+    query = urlencode({"error": error}) if error else urlencode({"status": status})
     response = RedirectResponse(f"{OAUTH_FRONTEND_CALLBACK_URL}?{query}", status_code=302)
     response.headers["Cache-Control"] = "no-store"
     # Clear the legacy client-side OAuth cookies (state/pkce/remember) in case a
@@ -188,12 +191,59 @@ async def oauth_callback(
             ip_created=client_ip(request),
             user_agent=request.headers.get("user-agent"),
         )
+    except OAuthLinkRequired as link:
+        # Email matches an existing password account — do not link silently.
+        # Stash a challenge and bounce the user to the confirm-password screen.
+        challenge_id = create_link_challenge(
+            db,
+            user_id=link.user_id,
+            provider=link.provider,
+            provider_user_id=link.provider_user_id,
+            email=link.email,
+            remember_me=txn.remember_me,
+        )
+        response = _frontend_oauth_redirect(status="link_required")
+        response.set_cookie(
+            "link_challenge", str(challenge_id),
+            httponly=True, secure=COOKIE_SECURE, samesite="lax",
+            max_age=600, path="/api/v1/auth",
+        )
+        return response
     except OAuthError as exc:
         return _frontend_oauth_redirect(exc.code)
 
     response = _frontend_oauth_redirect()
     _set_refresh_cookie(response, refresh_token, persistent=txn.remember_me)
     return response
+
+
+@router.post("/oauth/link/confirm", response_model=TokenResponse, dependencies=[Depends(require_trusted_origin)])
+def oauth_link_confirm(
+    request: Request,
+    response: Response,
+    payload: OAuthLinkConfirmRequest,
+    link_challenge: str | None = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    enforce_rate_limit(request, "oauth_link_confirm", 5)
+    if not link_challenge:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No pending link confirmation")
+    try:
+        confirmed = confirm_link_challenge(db, link_challenge, payload.password)
+    except OAuthError:
+        # Uniform 401 for wrong password / invalid / expired challenge.
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not confirm — check your password and try again")
+
+    session_policy = "persistent" if confirmed.remember_me else "ephemeral"
+    refresh_token, family_id = create_refresh_token(
+        db, confirmed.user, session_policy,
+        ip_created=client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+    access_token = create_login_token(confirmed.user, sid=family_id)
+    _set_refresh_cookie(response, refresh_token, persistent=confirmed.remember_me)
+    response.delete_cookie("link_challenge", path="/api/v1/auth")
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_trusted_origin)])

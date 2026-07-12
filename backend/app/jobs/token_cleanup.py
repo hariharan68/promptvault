@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.models.refresh_token import RefreshToken
 from app.models.oauth_transaction import OAuthTransaction
+from app.models.link_challenge import LinkChallenge
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ LEAK_ALERT_THRESHOLD = 50
 class CleanupResult:
     deleted_refresh_tokens: int
     deleted_oauth_transactions: int
+    deleted_link_challenges: int
     leak_suspects: list[tuple[str, int]]  # (user_id, live_token_count)
 
 
@@ -58,6 +60,13 @@ def run_cleanup(db: Session, now: datetime | None = None) -> CleanupResult:
         .delete(synchronize_session=False)
     )
 
+    # Link challenges are single-use and short-lived; drop anything past its TTL.
+    deleted_challenges = (
+        db.query(LinkChallenge)
+        .filter(LinkChallenge.expires_at < now)
+        .delete(synchronize_session=False)
+    )
+
     # Leak indicator: an unusually large number of simultaneously live families
     # for one user (each live family = one active tip token).
     leak_suspects = [
@@ -79,6 +88,7 @@ def run_cleanup(db: Session, now: datetime | None = None) -> CleanupResult:
     return CleanupResult(
         deleted_refresh_tokens=deleted_rt,
         deleted_oauth_transactions=deleted_txn,
+        deleted_link_challenges=deleted_challenges,
         leak_suspects=leak_suspects,
     )
 
@@ -94,9 +104,10 @@ def main() -> None:
         db.close()
 
     logger.info(
-        "token cleanup: deleted %d refresh tokens, %d oauth transactions",
+        "token cleanup: deleted %d refresh tokens, %d oauth transactions, %d link challenges",
         result.deleted_refresh_tokens,
         result.deleted_oauth_transactions,
+        result.deleted_link_challenges,
     )
     for user_id, count in result.leak_suspects:
         logger.warning("LEAK ALERT: user %s has %d live sessions (> %d)", user_id, count, LEAK_ALERT_THRESHOLD)

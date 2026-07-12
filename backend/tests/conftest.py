@@ -40,7 +40,15 @@ def session_factory(engine):
 
 
 @pytest.fixture()
-def db(session_factory):
+def db(engine, session_factory):
+    # Clean slate so db-fixture tests are isolated from each other (the client
+    # fixture already does this for HTTP tests; db-only tests need it too).
+    from app.database import Base
+
+    with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(table.delete())
+
     s = session_factory()
     try:
         yield s

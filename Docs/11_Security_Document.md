@@ -124,6 +124,21 @@ Email is normalized once (NFC + trim + lowercase) for registration, login, and O
 
 ---
 
+### 2.5d OAuth Account Linking (challenge, not auto-link)
+
+Automatic linking on email match is a top OAuth account-takeover vector, so when
+an OAuth login's email matches an existing **password** account we do **not**
+link. Instead a short-lived `link_challenges` row is created and the user is
+bounced to a "confirm it's you" screen; the link is written only after they
+re-enter the existing account's password. Wrong passwords don't consume the
+challenge (retry within a 5/min limit); an OAuth-only account matched by a
+*different* provider is refused rather than linked (no way to prove control
+without email). New emails still create-and-link normally.
+
+**Status:** ✅ Implemented (migration `20260719_link_challenges`).
+
+---
+
 ### 2.6 Anti-Enumeration
 
 - **Registration** returns a single generic message ("That email or username is already taken") — it does not reveal which field collided.

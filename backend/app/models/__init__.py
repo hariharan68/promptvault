@@ -7,4 +7,5 @@ from app.models.refresh_token import RefreshToken
 from app.models.prompt_version import PromptVersion
 from app.models.oauth_account import OAuthAccount
 from app.models.oauth_transaction import OAuthTransaction
+from app.models.link_challenge import LinkChallenge
 from app.models.security_event import SecurityEvent

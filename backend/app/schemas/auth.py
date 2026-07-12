@@ -16,6 +16,10 @@ class LoginRequest(BaseModel):
         return normalize_email(value)
 
 
+class OAuthLinkConfirmRequest(BaseModel):
+    password: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

@@ -24,6 +24,10 @@ export function oauthStartUrl(provider) {
   return /^https?:\/\//i.test(path) ? path : `${window.location.origin}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
+// Confirm a pending OAuth→password-account link by re-entering the password.
+// The link_challenge cookie is sent automatically; on success a session is issued.
+export const confirmOAuthLink = (password) => client.post("/auth/oauth/link/confirm", { password });
+
 export function completeOAuthSession() {
   // refresh() is deduped at the client layer, so this is safe to call alongside
   // the AuthContext boot refresh without racing the rotating refresh token.
