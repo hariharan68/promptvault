@@ -57,6 +57,43 @@ body {
   color: #F1F2F6;
 }
 
+/* Shared public-site light mode for the dark-first marketing pages. */
+.marketing-theme--light main [class~="bg-[#12131A]"] { background-color: #FFFFFF !important; }
+.marketing-theme--light main [class~="bg-[#17181F]"] { background-color: #F8F9FB !important; }
+.marketing-theme--light main [class~="bg-[#1A1B22]"] { background-color: #FFFFFF !important; }
+.marketing-theme--light main [class~="bg-[#15161C]"] { background-color: #F8F9FB !important; }
+.marketing-theme--light main [class~="bg-[#1B1C23]"] { background-color: #FFFFFF !important; }
+.marketing-theme--light main [class~="bg-[#20212A]"] { background-color: #F3EEF3 !important; }
+.marketing-theme--light main [class~="bg-[#252733]"] { background-color: #F3F4F6 !important; }
+.marketing-theme--light main [class~="bg-[#16171E]"] { background-color: #F9FAFB !important; }
+
+.marketing-theme--light main [class~="border-white/6"],
+.marketing-theme--light main [class~="border-white/8"],
+.marketing-theme--light main [class~="border-white/10"],
+.marketing-theme--light main [class~="border-white/15"] { border-color: #E5E7EB !important; }
+
+.marketing-theme--light main [class~="text-[#F4F2F0]"],
+.marketing-theme--light main [class~="text-white"] { color: #111827 !important; }
+.marketing-theme--light main [class~="text-[#C2C0C5]"] { color: #4B5563 !important; }
+.marketing-theme--light main [class~="text-[#B8B6BC]"],
+.marketing-theme--light main [class~="text-[#9CA3AF]"],
+.marketing-theme--light main [class~="text-[#8A8FA3]"] { color: #6B7280 !important; }
+.marketing-theme--light main [class~="text-[#E8CFE0]"],
+.marketing-theme--light main [class~="text-[#D7ACC9]"],
+.marketing-theme--light main [class~="text-[#C4A0BA]"] { color: #714B67 !important; }
+.marketing-theme--light main [class~="text-[#3A3D50]"],
+.marketing-theme--light main [class~="text-white/30"],
+.marketing-theme--light main [class~="text-white/35"],
+.marketing-theme--light main [class~="text-white/40"],
+.marketing-theme--light main [class~="text-white/65"],
+.marketing-theme--light main [class~="text-white/70"],
+.marketing-theme--light main [class~="text-white/90"] { color: #4B5563 !important; }
+
+.marketing-theme--light main [class*="hover:text-white"]:hover { color: #111827 !important; }
+.marketing-theme--light main [class~="bg-[#714B67]"] [class*="text-white"],
+.marketing-theme--light main [class~="bg-[#714B67]"] [class~="text-[#F4F2F0]"],
+.marketing-theme--light main [class~="bg-[#714B67]"] [class*="hover:text-white"]:hover { color: #FFFFFF !important; }
+
 ::selection { background: #714B6726; color: #111827; }
 .dark ::selection { background: #714B6740; color: #F1F2F6; }
 

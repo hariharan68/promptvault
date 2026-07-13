@@ -1,29 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  Lock, MagnifyingGlass, House, GithubLogo, Sun, Moon, Copy, Check,
+  Lock, MagnifyingGlass, House, Sun, Moon,
   List, X, ArrowRight, ArrowLeft, TextAlignLeft,
 } from "@phosphor-icons/react";
-import { useTheme } from "../context/ThemeContext.jsx";
+import { useMarketingTheme } from "../context/MarketingThemeContext.jsx";
 
 /* ─────────────────────────────  content primitives  ───────────────────────────── */
 const H2 = ({ id, children }) => (
-  <h2 id={id} data-toc className="scroll-mt-20 font-serif text-[26px] leading-tight text-[#111827] dark:text-white mt-14 mb-4 first:mt-0">
+  <h2 id={id} data-toc className="scroll-mt-20 font-serif text-[28px] leading-tight text-[#111827] dark:text-white mt-14 mb-4 first:mt-0">
     {children}
   </h2>
 );
 const H3 = ({ children }) => (
-  <h3 className="font-semibold text-[17px] text-[#111827] dark:text-white mt-8 mb-3">{children}</h3>
+  <h3 className="font-semibold text-[18px] text-[#111827] dark:text-white mt-8 mb-3">{children}</h3>
 );
 const P = ({ children }) => (
-  <p className="text-[15px] leading-7 text-[#374151] dark:text-[#B4B8C5] mb-4">{children}</p>
+  <p className="text-[16px] leading-7 text-[#374151] dark:text-[#B4B8C5] mb-4">{children}</p>
 );
 const Lead = ({ children }) => (
-  <p className="text-[18px] leading-8 text-[#4B5563] dark:text-[#C4C8D4] mb-6">{children}</p>
+  <p className="text-[19px] leading-8 text-[#4B5563] dark:text-[#C4C8D4] mb-6">{children}</p>
 );
 const UL = ({ children }) => <ul className="mb-5 space-y-2">{children}</ul>;
 const LI = ({ children }) => (
-  <li className="flex gap-2.5 text-[15px] leading-7 text-[#374151] dark:text-[#B4B8C5]">
+  <li className="flex gap-2.5 text-[16px] leading-7 text-[#374151] dark:text-[#B4B8C5]">
     <span className="mt-[11px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#714B67]" />
     <span className="min-w-0">{children}</span>
   </li>
@@ -54,14 +54,14 @@ const Callout = ({ tone = "note", children }) => {
 };
 const Steps = ({ children }) => <ol className="mb-6 space-y-3.5">{children}</ol>;
 const Step = ({ n, children }) => (
-  <li className="flex gap-3 text-[15px] leading-7 text-[#374151] dark:text-[#B4B8C5]">
+  <li className="flex gap-3 text-[16px] leading-7 text-[#374151] dark:text-[#B4B8C5]">
     <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#714B67] text-[12px] font-bold text-white">{n}</span>
     <span className="min-w-0 pt-px">{children}</span>
   </li>
 );
 const Table = ({ head, rows }) => (
   <div className="mb-5 overflow-x-auto rounded-xl border border-[#E5E7EB] dark:border-[#2C2E3A]">
-    <table className="w-full text-left text-[14px]">
+    <table className="w-full text-left text-[15px]">
       <thead className="bg-[#F9FAFB] dark:bg-[#15161C] text-[#6B7280] dark:text-[#9CA3AF]">
         <tr>{head.map((h) => <th key={h} className="px-4 py-2.5 font-semibold whitespace-nowrap">{h}</th>)}</tr>
       </thead>
@@ -821,7 +821,7 @@ const sectionOfPage = (id) => (CLI_PAGES.some((p) => p.id === id) ? "cli" : "web
 
 /* ─────────────────────────────  main page  ───────────────────────────── */
 export default function DocsPage() {
-  const { theme, toggle } = useTheme();
+  const { theme, toggleTheme: toggle } = useMarketingTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const contentRef = useRef(null);
   const searchRef = useRef(null);
@@ -834,7 +834,6 @@ export default function DocsPage() {
   const [toc, setToc] = useState([]);
   const [activeHeading, setActiveHeading] = useState("");
   const [navOpen, setNavOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   // The active documentation section is derived from the current page.
   const section = sectionOfPage(activeId);
@@ -911,11 +910,6 @@ export default function DocsPage() {
   };
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
-  const copyPage = async () => {
-    const text = contentRef.current?.innerText ?? "";
-    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ }
-  };
-
   const SidebarNav = () => (
     <nav className="flex flex-col gap-6">
       {/* Section switcher: Webapp Docs (default) / CLI Docs */}
@@ -926,7 +920,7 @@ export default function DocsPage() {
             <button
               key={key}
               onClick={() => switchSection(key)}
-              className={`flex-1 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
+              className={`flex-1 rounded-lg px-3 py-1.5 text-[14px] font-medium transition-colors ${
                 on
                   ? "bg-[#714B67] text-white shadow-sm"
                   : "text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white"
@@ -939,7 +933,7 @@ export default function DocsPage() {
       </div>
       {grouped.map(([group, pages]) => (
         <div key={group}>
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF] dark:text-[#6B7280]">
+          <p className="mb-2 px-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF] dark:text-[#6B7280]">
             {group}
           </p>
           <div className="flex flex-col">
@@ -949,7 +943,7 @@ export default function DocsPage() {
                 <button
                   key={p.id}
                   onClick={() => go(p.id)}
-                  className={`rounded-lg px-3 py-1.5 text-left text-[14px] transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-left text-[15px] transition-colors ${
                     on
                       ? "bg-[#F3EEF3] dark:bg-[#2A2130] font-medium text-[#714B67] dark:text-[#C4A0BA]"
                       : "text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white hover:bg-[#F3F4F6] dark:hover:bg-[#22242E]"
@@ -969,9 +963,9 @@ export default function DocsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#1A1B22]">
+    <div className={`min-h-screen bg-white dark:bg-[#1A1B22] ${theme === "dark" ? "dark" : ""}`}>
       {/* Top bar */}
-      <header className="sticky top-0 z-40 h-14 border-b border-[#E5E7EB] dark:border-[#2C2E3A] bg-white/90 dark:bg-[#1A1B22]/90 backdrop-blur">
+      <header className="sticky top-0 z-40 h-16 border-b border-[#E5E7EB] dark:border-[#2C2E3A] bg-white/90 dark:bg-[#1A1B22]/90 backdrop-blur">
         <div className="mx-auto flex h-full max-w-[1400px] items-center gap-4 px-4">
           <button onClick={() => setNavOpen((v) => !v)} className="lg:hidden -ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] dark:hover:bg-[#22242E]">
             {navOpen ? <X size={18} /> : <List size={18} />}
@@ -1000,9 +994,6 @@ export default function DocsPage() {
             <Link to="/" className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white md:flex">
               <House size={14} /> Home
             </Link>
-            <a href="#" className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white md:flex">
-              <GithubLogo size={14} /> GitHub
-            </a>
             <button onClick={toggle} title="Toggle theme" className="flex h-9 w-9 items-center justify-center rounded-full text-[#6B7280] hover:bg-[#F3F4F6] dark:hover:bg-[#22242E]">
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -1022,23 +1013,16 @@ export default function DocsPage() {
 
       <div className="mx-auto max-w-[1400px] px-4 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[15rem_minmax(0,1fr)_14rem]">
         {/* Left sidebar */}
-        <aside className="hidden lg:block sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto py-8 pr-2">
+        <aside className="hidden lg:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto py-8 pr-2">
           <SidebarNav />
         </aside>
 
         {/* Main content */}
         <main className="min-w-0 py-10">
-          <div className="mb-6 flex items-start justify-between gap-4">
-            <h1 className="font-serif text-[40px] leading-tight tracking-tight text-[#111827] dark:text-white">
+          <div className="mb-6">
+            <h1 className="font-serif text-[42px] leading-tight tracking-tight text-[#111827] dark:text-white">
               {active.title}
             </h1>
-            <button
-              onClick={copyPage}
-              className="mt-2 flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#E5E7EB] dark:border-[#363847] bg-white dark:bg-[#252733] px-3 py-1.5 text-[13px] text-[#4B5563] dark:text-[#9CA3AF] hover:border-[#714B67]/40 hover:text-[#714B67] dark:hover:text-[#C4A0BA]"
-            >
-              {copied ? <Check size={14} weight="bold" className="text-emerald-500" /> : <Copy size={14} />}
-              {copied ? "Copied" : "Copy"}
-            </button>
           </div>
 
           <article ref={contentRef} className="max-w-2xl">
@@ -1048,12 +1032,12 @@ export default function DocsPage() {
           {/* Prev / next */}
           <div className="mt-16 flex items-center justify-between gap-4 border-t border-[#E5E7EB] dark:border-[#2C2E3A] pt-6 max-w-2xl">
             {activeIndex > 0 ? (
-              <button onClick={() => go(PAGES[activeIndex - 1].id)} className="group flex items-center gap-2 text-[14px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]">
+              <button onClick={() => go(PAGES[activeIndex - 1].id)} className="group flex items-center gap-2 text-[15px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]">
                 <ArrowLeft size={15} /> <span>{PAGES[activeIndex - 1].title}</span>
               </button>
             ) : <span />}
             {activeIndex < PAGES.length - 1 ? (
-              <button onClick={() => go(PAGES[activeIndex + 1].id)} className="group ml-auto flex items-center gap-2 text-right text-[14px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]">
+              <button onClick={() => go(PAGES[activeIndex + 1].id)} className="group ml-auto flex items-center gap-2 text-right text-[15px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]">
                 <span>{PAGES[activeIndex + 1].title}</span> <ArrowRight size={15} />
               </button>
             ) : <span />}
@@ -1061,10 +1045,10 @@ export default function DocsPage() {
         </main>
 
         {/* Right "on this page" */}
-        <aside className="hidden xl:block sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto py-10">
+        <aside className="hidden xl:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto py-10">
           {toc.length > 0 && (
             <>
-              <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF] dark:text-[#6B7280]">
+              <p className="mb-3 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF] dark:text-[#6B7280]">
                 <TextAlignLeft size={13} /> On this page
               </p>
               <div className="flex flex-col gap-1.5 border-l border-[#E5E7EB] dark:border-[#2C2E3A]">
@@ -1072,7 +1056,7 @@ export default function DocsPage() {
                   <button
                     key={t.id}
                     onClick={() => scrollTo(t.id)}
-                    className={`-ml-px border-l pl-3 text-left text-[13px] leading-5 transition-colors ${
+                    className={`-ml-px border-l pl-3 text-left text-[14px] leading-5 transition-colors ${
                       activeHeading === t.id
                         ? "border-[#714B67] text-[#714B67] dark:text-[#C4A0BA]"
                         : "border-transparent text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white"

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import {
@@ -11,10 +10,9 @@ import {
   FolderSimple,
   ArrowRight,
   ArrowLeft,
-  List,
-  X,
   BookOpen,
 } from "@phosphor-icons/react";
+import MarketingShell from "../components/marketing/MarketingShell.jsx";
 
 /* ─── Content ─────────────────────────────────────────────────────────────── */
 const FEATURES = [
@@ -148,60 +146,12 @@ function Terminal() {
 
 /* ─── Page ────────────────────────────────────────────────────────────────── */
 const DOCS_LINK = "/docs?p=cli-overview";
-
 export default function CliPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
-    <div className="min-h-screen bg-[#1A1B22] text-white overflow-x-hidden">
+    <MarketingShell showFooter={false}>
+      <div className="min-h-screen bg-[#1A1B22] text-white overflow-x-hidden">
 
       {/* ── NAV ─────────────────────────────────────────────────────────── */}
-      <header className="fixed top-0 left-0 right-0 z-50
-        bg-[#1A1B22]/96 backdrop-blur border-b border-white/6">
-        <div className="max-w-6xl mx-auto px-5 md:px-8 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-[#714B67] rounded-lg flex items-center justify-center">
-              <Lock size={13} weight="bold" className="text-white" />
-            </div>
-            <span className="font-serif text-white text-[17px] tracking-tight">
-              PromptNest <span className="text-white/40">CLI</span>
-            </span>
-          </Link>
-
-          <nav className="hidden md:flex items-center gap-7">
-            <a href="#features" className="text-sm text-white/55 hover:text-white/90 transition-colors">Features</a>
-            <a href="#how" className="text-sm text-white/55 hover:text-white/90 transition-colors">How to use</a>
-            <a href="#commands" className="text-sm text-white/55 hover:text-white/90 transition-colors">Commands</a>
-            <Link to={DOCS_LINK} className="text-sm text-white/55 hover:text-white/90 transition-colors">CLI Docs</Link>
-          </nav>
-
-          <div className="hidden md:flex items-center gap-2">
-            <Link to="/" className="px-4 py-1.5 text-sm text-white/60 hover:text-white transition-colors rounded-full">
-              Home
-            </Link>
-            <Link to={DOCS_LINK}
-              className="px-4 py-1.5 rounded-full bg-[#714B67] hover:bg-[#5A3A52]
-                text-sm text-white font-medium transition-colors">
-              Read the docs
-            </Link>
-          </div>
-
-          <button onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden w-8 h-8 flex items-center justify-center text-white/60 hover:text-white">
-            {menuOpen ? <X size={20} /> : <List size={20} />}
-          </button>
-        </div>
-
-        {menuOpen && (
-          <div className="md:hidden bg-[#1A1B22] border-t border-white/6 px-5 py-5 flex flex-col gap-4">
-            <a href="#features" onClick={() => setMenuOpen(false)} className="text-sm text-white/60">Features</a>
-            <a href="#how" onClick={() => setMenuOpen(false)} className="text-sm text-white/60">How to use</a>
-            <a href="#commands" onClick={() => setMenuOpen(false)} className="text-sm text-white/60">Commands</a>
-            <Link to={DOCS_LINK} onClick={() => setMenuOpen(false)} className="text-sm text-white/60">CLI Docs</Link>
-          </div>
-        )}
-      </header>
-
       {/* ── HERO ────────────────────────────────────────────────────────── */}
       <section className="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden">
         <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px]
@@ -260,11 +210,11 @@ export default function CliPage() {
                     shadow-[0_4px_16px_-4px_rgba(113,75,103,0.55)]">
                   <BookOpen size={15} weight="bold" /> Read the CLI docs
                 </Link>
-                <Link to="/"
+                <Link to="/features"
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full
                     border border-white/15 hover:border-white/30 text-white/65 hover:text-white
                     text-sm font-medium transition-all">
-                  <ArrowLeft size={14} /> Back to home
+                  <ArrowLeft size={14} /> Explore Features
                 </Link>
               </motion.div>
 
@@ -420,7 +370,7 @@ export default function CliPage() {
                   shadow-[0_4px_20px_-4px_rgba(113,75,103,0.6)]">
                 Read the CLI docs <ArrowRight size={14} weight="bold" />
               </Link>
-              <Link to="/"
+              <Link to="/features"
                 className="inline-flex items-center gap-2 px-7 py-3 rounded-full
                   border border-white/15 hover:border-white/30 text-white/65 hover:text-white
                   text-sm font-medium transition-all">
@@ -441,13 +391,14 @@ export default function CliPage() {
             <span className="font-serif text-white/75 text-[15px] tracking-tight">PromptNest CLI</span>
           </div>
           <div className="flex items-center gap-5 flex-wrap justify-center">
-            <Link to="/" className="text-sm text-white/35 hover:text-white/70 transition-colors">Home</Link>
+            <Link to="/features" className="text-sm text-white/35 hover:text-white/70 transition-colors">Features</Link>
             <Link to={DOCS_LINK} className="text-sm text-white/35 hover:text-white/70 transition-colors">CLI Docs</Link>
             <Link to="/docs" className="text-sm text-white/35 hover:text-white/70 transition-colors">Web app docs</Link>
           </div>
           <p className="text-[12px] text-[#3A3D50]">© 2025 PromptNest</p>
         </div>
       </footer>
-    </div>
+      </div>
+    </MarketingShell>
   );
 }
