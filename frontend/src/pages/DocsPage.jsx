@@ -1,29 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  Lock, MagnifyingGlass, House, GithubLogo, Sun, Moon, Copy, Check,
+  Lock, MagnifyingGlass, House, Sun, Moon,
   List, X, ArrowRight, ArrowLeft, TextAlignLeft,
 } from "@phosphor-icons/react";
-import { useTheme } from "../context/ThemeContext.jsx";
+import { useMarketingTheme } from "../context/MarketingThemeContext.jsx";
 
 /* ─────────────────────────────  content primitives  ───────────────────────────── */
 const H2 = ({ id, children }) => (
-  <h2 id={id} data-toc className="scroll-mt-20 font-serif text-[26px] leading-tight text-[#111827] dark:text-white mt-14 mb-4 first:mt-0">
+  <h2 id={id} data-toc className="scroll-mt-20 font-serif text-[28px] leading-tight text-[#111827] dark:text-white mt-14 mb-4 first:mt-0">
     {children}
   </h2>
 );
 const H3 = ({ children }) => (
-  <h3 className="font-semibold text-[17px] text-[#111827] dark:text-white mt-8 mb-3">{children}</h3>
+  <h3 className="font-semibold text-[18px] text-[#111827] dark:text-white mt-8 mb-3">{children}</h3>
 );
 const P = ({ children }) => (
-  <p className="text-[15px] leading-7 text-[#374151] dark:text-[#B4B8C5] mb-4">{children}</p>
+  <p className="text-[16px] leading-7 text-[#374151] dark:text-[#B4B8C5] mb-4">{children}</p>
 );
 const Lead = ({ children }) => (
-  <p className="text-[18px] leading-8 text-[#4B5563] dark:text-[#C4C8D4] mb-6">{children}</p>
+  <p className="text-[19px] leading-8 text-[#4B5563] dark:text-[#C4C8D4] mb-6">{children}</p>
 );
 const UL = ({ children }) => <ul className="mb-5 space-y-2">{children}</ul>;
 const LI = ({ children }) => (
-  <li className="flex gap-2.5 text-[15px] leading-7 text-[#374151] dark:text-[#B4B8C5]">
+  <li className="flex gap-2.5 text-[16px] leading-7 text-[#374151] dark:text-[#B4B8C5]">
     <span className="mt-[11px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#714B67]" />
     <span className="min-w-0">{children}</span>
   </li>
@@ -54,14 +54,14 @@ const Callout = ({ tone = "note", children }) => {
 };
 const Steps = ({ children }) => <ol className="mb-6 space-y-3.5">{children}</ol>;
 const Step = ({ n, children }) => (
-  <li className="flex gap-3 text-[15px] leading-7 text-[#374151] dark:text-[#B4B8C5]">
+  <li className="flex gap-3 text-[16px] leading-7 text-[#374151] dark:text-[#B4B8C5]">
     <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#714B67] text-[12px] font-bold text-white">{n}</span>
     <span className="min-w-0 pt-px">{children}</span>
   </li>
 );
 const Table = ({ head, rows }) => (
   <div className="mb-5 overflow-x-auto rounded-xl border border-[#E5E7EB] dark:border-[#2C2E3A]">
-    <table className="w-full text-left text-[14px]">
+    <table className="w-full text-left text-[15px]">
       <thead className="bg-[#F9FAFB] dark:bg-[#15161C] text-[#6B7280] dark:text-[#9CA3AF]">
         <tr>{head.map((h) => <th key={h} className="px-4 py-2.5 font-semibold whitespace-nowrap">{h}</th>)}</tr>
       </thead>
@@ -450,8 +450,324 @@ function Tips() {
   );
 }
 
+/* ═════════════════════════════  CLI documentation  ═════════════════════════ */
+function CliOverview() {
+  return (
+    <>
+      <Lead>
+        The <B>PromptNest CLI</B> brings your prompt library to the terminal and to AI coding
+        agents. It stores prompts as plain markdown files on your own machine under{" "}
+        <Code>~/.promptnest</Code> — no server, no account, no sync required.
+      </Lead>
+      <H2 id="what">What it is</H2>
+      <P>
+        The web app and the CLI share the same idea — save prompts once, reuse them by name — but the
+        CLI is built for people who live in a shell or an AI agent like Claude Code. You save, search,
+        and reuse prompts with short commands, and template them with <Code>{"{{variables}}"}</Code>.
+      </P>
+      <H2 id="highlights">Highlights</H2>
+      <UL>
+        <LI><B>Local-first.</B> Every prompt is a markdown file you can read, edit, or put in git.</LI>
+        <LI><B>Save by name.</B> Give a prompt a title, group, and keywords, then recall it instantly.</LI>
+        <LI><B>Templates.</B> Fill <Code>{"{{placeholders}}"}</Code> at use-time so one prompt covers many cases.</LI>
+        <LI><B>No size limits.</B> Pipe long prompts from a file or stdin — never truncated by the terminal.</LI>
+        <LI><B>Agent skills.</B> Use <Code>/pn</Code>, <Code>/promptsave</Code>, and <Code>/promptnest</Code> inside Claude Code.</LI>
+      </UL>
+      <H2 id="webapp-vs-cli">Web app vs. CLI</H2>
+      <Table
+        head={["", "Web app", "CLI"]}
+        rows={[
+          ["Where prompts live", "Your PromptNest account", "Local files (~/.promptnest)"],
+          ["Best for", "Browsing, editing, teams", "Terminals & AI agents"],
+          ["Search", "⌘K palette", "pn search / pn list"],
+          ["Templates", "Fill-in before copy", "pn use --var k=v"],
+        ]}
+      />
+      <Callout tone="tip">
+        New to the CLI? Jump to <B>Install &amp; setup</B>, then <B>Saving prompts</B> — you'll have a
+        working local library in a minute.
+      </Callout>
+    </>
+  );
+}
+
+function CliInstall() {
+  return (
+    <>
+      <Lead>The CLI runs on Node.js 18 or newer. You can try it with no install, or set up a short global command.</Lead>
+      <H2 id="npx">Run it with npx (no install)</H2>
+      <P>The fastest way to try it — <Code>npx</Code> downloads and runs it on demand:</P>
+      <Pre>{`npx promptnest help`}</Pre>
+      <H2 id="init">Set up your vault &amp; agent skills</H2>
+      <P>One command creates your local vault and installs the Claude Code slash commands:</P>
+      <Pre>{`npx promptnest init`}</Pre>
+      <P>It prints a watcher-hook snippet too (optional — see <B>Capture by recency</B>).</P>
+      <H2 id="global">Get a global <Code>pn</Code> command</H2>
+      <P>For daily use, link it once so you can type <Code>pn …</Code> from any folder:</P>
+      <Pre>{`# from inside the promptnest project folder
+npm link`}</Pre>
+      <Callout tone="note">
+        <B>npm link</B> is a one-time setup per machine. A teammate cloning the repo runs it themselves,
+        or just uses <Code>npx promptnest …</Code>.
+      </Callout>
+    </>
+  );
+}
+
+function CliSaving() {
+  return (
+    <>
+      <Lead>Saving is the core action. Once saved, a prompt is searchable and reusable by name forever.</Lead>
+      <H2 id="quick">The quick save</H2>
+      <P>A quoted prompt plus a title is all you need:</P>
+      <Pre>{`pn save "Summarize this article in 5 bullet points" -t "Article summary"`}</Pre>
+      <P>PromptNest prints the file path and the <B>id</B> you'll use later (e.g. <Code>2026-07-12_article-summary</Code>).</P>
+      <H2 id="flags">Save options</H2>
+      <Table
+        head={["Short", "Long", "Meaning"]}
+        rows={[
+          [<Code>-t</Code>, <Code>--title</Code>, "A human name for the prompt"],
+          [<Code>-k</Code>, <Code>--keywords</Code>, "Comma-separated tags for search"],
+          [<Code>-g</Code>, <Code>--group</Code>, "A folder to file it under"],
+          [<Code>-d</Code>, <Code>--desc</Code>, "A one-line description"],
+          [<Code>-f</Code>, <Code>--file</Code>, "Read the prompt body from a file"],
+          [<Code>-i</Code>, <Code>--interactive</Code>, "Guided prompts for each field"],
+        ]}
+      />
+      <P>A fully specified save:</P>
+      <Pre>{`pn save "Review this {{language}} code for {{focus}}" \\
+  -t "Lang review" -k review,security -g code-review`}</Pre>
+      <UL>
+        <LI>Titles and groups can have spaces — just quote them.</LI>
+        <LI>Keyword spaces are trimmed: <Code>"JWT , AUTH"</Code> becomes <Code>[JWT, AUTH]</Code>.</LI>
+        <LI>Omit <Code>-t</Code> and the first line becomes the title; omit <Code>-g</Code> and it lands in <Code>inbox</Code>.</LI>
+      </UL>
+      <H2 id="guided">Guided save</H2>
+      <P>Don't want to remember flags? Let the CLI ask you, one field at a time:</P>
+      <Pre>{`pn save -i`}</Pre>
+      <P>It walks through text → title → keywords → group → description.</P>
+    </>
+  );
+}
+
+function CliLongPrompts() {
+  return (
+    <>
+      <Lead>
+        Long or multi-line prompts should never be typed directly on the command line — terminals cap how
+        much text a single command can hold, and silently cut off the rest.
+      </Lead>
+      <H2 id="why">Why inlining big prompts fails</H2>
+      <P>
+        When you run <Code>pn save "…a very long prompt…"</Code>, the text travels as a command-line
+        argument. Past the terminal's limit it gets truncated <B>before PromptNest ever sees it</B> — so
+        only part of your prompt is saved. This is a terminal limitation, not a PromptNest one.
+      </P>
+      <H2 id="file">Save from a file</H2>
+      <P>Put the prompt in a text file and point <Code>--file</Code> at it — no size limit:</P>
+      <Pre>{`pn save --file prompt.txt -t "JWT Auth" -k JWT,AUTH,SECURITY -g JWT`}</Pre>
+      <H2 id="stdin">Save from a pipe (stdin)</H2>
+      <Pre>{`# macOS / Linux
+pn save -t "JWT Auth" -g JWT < prompt.txt
+
+# Windows PowerShell
+Get-Content prompt.txt -Raw | pn save -t "JWT Auth" -g JWT`}</Pre>
+      <Callout tone="tip">
+        Rule of thumb: <B>short prompt → inline quotes are fine; long or multi-line → use <Code>--file</Code> or a pipe.</B>
+      </Callout>
+    </>
+  );
+}
+
+function CliTemplates() {
+  return (
+    <>
+      <Lead>A saved prompt can contain <Code>{"{{placeholders}}"}</Code>. PromptNest detects them on save; you fill them at use-time.</Lead>
+      <H2 id="save">Save a template</H2>
+      <Pre>{`pn save "Review this {{language}} code for {{focus}}" -t "Lang review" -g code-review`}</Pre>
+      <H2 id="use">Fill it in</H2>
+      <Pre>{`pn use lang-review --var language=Python --var focus=security
+# → Review this Python code for security`}</Pre>
+      <P>Same template, new values:</P>
+      <Pre>{`pn use lang-review --var language=Rust --var focus="memory safety"
+# → Review this Rust code for memory safety`}</Pre>
+      <UL>
+        <LI>Use <Code>--var name=value</Code> once per variable.</LI>
+        <LI>Quote values with spaces: <Code>--var focus="memory safety"</Code>.</LI>
+        <LI>Forget one and PromptNest leaves the <Code>{"{{placeholder}}"}</Code> in place and warns you — nothing breaks.</LI>
+      </UL>
+      <Callout tone="note">A prompt with no variables makes <Code>pn use</Code> behave exactly like <Code>pn get</Code>.</Callout>
+    </>
+  );
+}
+
+function CliFindReuse() {
+  return (
+    <>
+      <Lead>Once prompts are saved, finding and reusing them is a few short commands.</Lead>
+      <H2 id="list">List &amp; filter</H2>
+      <Pre>{`pn list                 # everything
+pn list -g JWT          # one group
+pn list --keyword security`}</Pre>
+      <H2 id="search">Search</H2>
+      <P><Code>search</Code> ranks matches across titles, keywords, descriptions, and bodies:</P>
+      <Pre>{`pn search jwt`}</Pre>
+      <H2 id="get">Print a prompt</H2>
+      <P><Code>get</Code> prints the body exactly as saved — ready to paste. Partial ids work:</P>
+      <Pre>{`pn get 2026-07-12_jwt-auth
+pn get jwt               # partial id also matches`}</Pre>
+      <H2 id="path">Get the file path</H2>
+      <P>Need the underlying <Code>.md</Code> file (to open in an editor, say)?</P>
+      <Pre>{`pn path jwt              # → ~/.promptnest/prompts/jwt/2026-07-12_jwt-auth.md`}</Pre>
+      <H2 id="get-vs-use">get vs. use</H2>
+      <UL>
+        <LI><B>get</B> is a pure read — prints the prompt and changes nothing.</LI>
+        <LI><B>use</B> fills variables, bumps the usage counter, and updates the timestamp.</LI>
+      </UL>
+    </>
+  );
+}
+
+function CliRecency() {
+  return (
+    <>
+      <Lead>In Claude Code, the CLI can watch the prompts you type and let you save a recent one without retyping it.</Lead>
+      <H2 id="save-n">Save by recency</H2>
+      <Pre>{`pn save -1     # the most recent prompt you typed
+pn save -2     # the 2nd-most-recent
+pn count       # how much history + how many saved`}</Pre>
+      <P><Code>count</Code> reports two numbers — <B>history</B> (raw captured prompts, last 500) and <B>saved</B> (prompts promoted into your library).</P>
+      <H2 id="hook">Turn on the watcher</H2>
+      <P><Code>pn init</Code> prints a hook to add to your Claude Code <Code>settings.json</Code>:</P>
+      <Pre>{`{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "npx -y promptnest log" } ] }
+    ]
+  }
+}`}</Pre>
+      <Callout tone="note">
+        Auto-watch is Claude Code only. In Cursor or Codex, <Code>-N</Code> recency isn't available — save with a
+        quoted string or <Code>--file</Code> instead. Everything else works the same.
+      </Callout>
+    </>
+  );
+}
+
+function CliSkills() {
+  return (
+    <>
+      <Lead>PromptNest installs slash commands so you rarely touch the terminal from inside your agent.</Lead>
+      <H2 id="commands">The agent skills</H2>
+      <Table
+        head={["Skill", "What it does"]}
+        rows={[
+          [<Code>/pn</Code>, "Run any PromptNest command, e.g. /pn list or /pn search jwt"],
+          [<Code>/promptsave</Code>, "Save the prompt you just wrote, then ask for description/keywords/group"],
+          [<Code>/promptnest</Code>, "Browse or search your library and offer to reuse a prompt"],
+        ]}
+      />
+      <H2 id="workflow">The recommended flow</H2>
+      <P>
+        Before hand-writing a reusable prompt, checklist, or template, search your library first — you may
+        already have a better version saved. Write a good new one? Save it with <Code>/promptsave</Code>.
+      </P>
+      <Callout tone="tip">
+        Typing a big prompt for the agent to save? It writes the text to a temp file and saves with{" "}
+        <Code>--file</Code> automatically, so it's never truncated.
+      </Callout>
+    </>
+  );
+}
+
+function CliReference() {
+  return (
+    <>
+      <Lead>Every command at a glance.</Lead>
+      <H2 id="commands">Commands</H2>
+      <Pre>{`pn init [-a claude]              Set up the vault + install agent skills
+pn log                           (Hook) append a piped prompt to history
+pn save ["text"] [options]       Save a prompt (see how text is chosen below)
+pn list [-g group] [--keyword k] List saved prompts
+pn search "<query>"              Search titles, keywords, descriptions, bodies
+pn get <id>                      Print one prompt's body
+pn path <id>                     Print the prompt's .md file path
+pn use <id> [--var k=v ...]      Fill {{variables}} and print
+pn count                         History depth + saved count
+pn open                          Open the vault folder
+pn rebuild-index                 Regenerate the indexes after hand-edits`}</Pre>
+      <H2 id="resolution">How <Code>save</Code> picks its text</H2>
+      <P>It uses the first source it finds, in order:</P>
+      <Steps>
+        <Step n={1}><Code>--text "…"</Code> (explicit flag)</Step>
+        <Step n={2}><Code>--file &lt;path&gt;</Code></Step>
+        <Step n={3}>a plain quoted positional argument</Step>
+        <Step n={4}>piped stdin</Step>
+        <Step n={5}>interactive (<Code>-i</Code>, or a bare <Code>pn save</Code> on an empty vault)</Step>
+        <Step n={6}>recency from the watcher (<Code>-N</Code>, default <Code>-1</Code>)</Step>
+      </Steps>
+      <H2 id="global">Global flags &amp; exit codes</H2>
+      <UL>
+        <LI><Code>--json</Code>/<Code>-j</Code> — machine-readable output. <Code>--quiet</Code>/<Code>-q</Code> — suppress confirmations.</LI>
+        <LI><Code>--dir &lt;path&gt;</Code> or <Code>PROMPTNEST_DIR</Code> — use a different vault.</LI>
+        <LI>Exit codes: <B>0</B> success · <B>1</B> bad usage · <B>2</B> not found / out of range.</LI>
+      </UL>
+    </>
+  );
+}
+
+function CliStorage() {
+  return (
+    <>
+      <Lead>Everything is plain text under <Code>~/.promptnest</Code> — browsable, editable, git-friendly.</Lead>
+      <H2 id="layout">Folder layout</H2>
+      <Pre>{`~/.promptnest/
+├── config.json               # settings
+├── history.jsonl             # watcher log (powers save -N)
+├── index.json                # machine index
+├── INDEX.md                  # human index (auto-generated)
+└── prompts/
+    └── <group>/
+        └── <id>.md           # one file per saved prompt`}</Pre>
+      <H2 id="file">A prompt file</H2>
+      <P>Each file has a small frontmatter header plus your prompt body:</P>
+      <Pre>{`---
+id: 2026-07-12_jwt-auth
+title: JWT Auth
+keywords: [JWT, AUTH, SECURITY]
+group: JWT
+uses: 0
+variables: []
+---
+Implement JWT-based authentication for my backend...`}</Pre>
+      <Callout tone="note">
+        Edited a file by hand? Run <Code>pn rebuild-index</Code> to refresh the indexes. Move the vault
+        anywhere with <Code>PROMPTNEST_DIR</Code>.
+      </Callout>
+    </>
+  );
+}
+
+function CliTroubleshooting() {
+  return (
+    <>
+      <Lead>Quick fixes for the things people hit most.</Lead>
+      <H2 id="truncated">My long prompt got cut off</H2>
+      <P>The terminal truncated it before PromptNest saw it. Save from a file or a pipe — see <B>Long prompts</B>. The tool itself has no length limit.</P>
+      <H2 id="not-found">pn: command not found</H2>
+      <P>You haven't linked it. Run <Code>npm link</Code> in the project, or use <Code>npx promptnest …</Code>.</P>
+      <H2 id="empty">nothing to save (empty prompt text)</H2>
+      <P>PromptNest received no body — often an empty file, empty pipe, or an over-truncated argument. Check the input source.</P>
+      <H2 id="range">no prompt at -N; only X captured</H2>
+      <P>You asked for a recency slot deeper than your history. Run <Code>pn count</Code> and pick a smaller <Code>-N</Code>.</P>
+      <H2 id="stale">list looks stale after editing files</H2>
+      <P>Run <Code>pn rebuild-index</Code> to regenerate the indexes from the files on disk.</P>
+    </>
+  );
+}
+
 /* ─────────────────────────────  page registry  ───────────────────────────── */
-const PAGES = [
+const WEBAPP_PAGES = [
   { id: "welcome", group: "Getting Started", title: "Welcome to PromptNest", Component: Welcome },
   { id: "create-account", group: "Getting Started", title: "Create your account", Component: CreateAccount },
   { id: "tour", group: "Getting Started", title: "A quick tour", Component: Tour },
@@ -474,24 +790,55 @@ const PAGES = [
   { id: "tips", group: "Guides", title: "Tips & FAQ", Component: Tips },
 ];
 
-const GROUP_ORDER = ["Getting Started", "Working with Prompts", "Organizing", "Your Account", "Guides"];
+const WEBAPP_GROUP_ORDER = ["Getting Started", "Working with Prompts", "Organizing", "Your Account", "Guides"];
+
+const CLI_PAGES = [
+  { id: "cli-overview", group: "Getting Started", title: "What is the CLI", Component: CliOverview },
+  { id: "cli-install", group: "Getting Started", title: "Install & setup", Component: CliInstall },
+
+  { id: "cli-saving", group: "Using the CLI", title: "Saving prompts", Component: CliSaving },
+  { id: "cli-long-prompts", group: "Using the CLI", title: "Long prompts: files & stdin", Component: CliLongPrompts },
+  { id: "cli-templates", group: "Using the CLI", title: "Variables & templates", Component: CliTemplates },
+  { id: "cli-find", group: "Using the CLI", title: "Find, get & use", Component: CliFindReuse },
+  { id: "cli-recency", group: "Using the CLI", title: "Capture by recency", Component: CliRecency },
+
+  { id: "cli-skills", group: "Agent Integration", title: "Agent skills (/pn)", Component: CliSkills },
+
+  { id: "cli-reference", group: "Reference", title: "Command reference", Component: CliReference },
+  { id: "cli-storage", group: "Reference", title: "Where data lives", Component: CliStorage },
+  { id: "cli-troubleshooting", group: "Reference", title: "Troubleshooting", Component: CliTroubleshooting },
+];
+
+const CLI_GROUP_ORDER = ["Getting Started", "Using the CLI", "Agent Integration", "Reference"];
+
+/* Two top-level documentation sections shown in the sidebar switcher. */
+const SECTIONS = {
+  webapp: { label: "Webapp Docs", pages: WEBAPP_PAGES, groupOrder: WEBAPP_GROUP_ORDER },
+  cli: { label: "CLI Docs", pages: CLI_PAGES, groupOrder: CLI_GROUP_ORDER },
+};
+const ALL_PAGES = [...WEBAPP_PAGES, ...CLI_PAGES];
+const sectionOfPage = (id) => (CLI_PAGES.some((p) => p.id === id) ? "cli" : "webapp");
 
 /* ─────────────────────────────  main page  ───────────────────────────── */
 export default function DocsPage() {
-  const { theme, toggle } = useTheme();
+  const { theme, toggleTheme: toggle } = useMarketingTheme();
   const [searchParams, setSearchParams] = useSearchParams();
   const contentRef = useRef(null);
   const searchRef = useRef(null);
 
   const initial = searchParams.get("p");
   const [activeId, setActiveId] = useState(
-    PAGES.some((p) => p.id === initial) ? initial : PAGES[0].id,
+    ALL_PAGES.some((p) => p.id === initial) ? initial : WEBAPP_PAGES[0].id,
   );
   const [query, setQuery] = useState("");
   const [toc, setToc] = useState([]);
   const [activeHeading, setActiveHeading] = useState("");
   const [navOpen, setNavOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+
+  // The active documentation section is derived from the current page.
+  const section = sectionOfPage(activeId);
+  const PAGES = SECTIONS[section].pages;
+  const GROUP_ORDER = SECTIONS[section].groupOrder;
 
   const activeIndex = PAGES.findIndex((p) => p.id === activeId);
   const active = PAGES[activeIndex];
@@ -503,7 +850,7 @@ export default function DocsPage() {
     return PAGES.filter(
       (p) => p.title.toLowerCase().includes(q) || p.group.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, section]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const grouped = useMemo(() => {
     const map = {};
@@ -555,18 +902,38 @@ export default function DocsPage() {
   }, []);
 
   const go = (id) => { setActiveId(id); setNavOpen(false); };
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-
-  const copyPage = async () => {
-    const text = contentRef.current?.innerText ?? "";
-    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ }
+  const switchSection = (key) => {
+    if (key === section) return;
+    setQuery("");
+    setActiveId(SECTIONS[key].pages[0].id);
+    setNavOpen(false);
   };
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   const SidebarNav = () => (
     <nav className="flex flex-col gap-6">
+      {/* Section switcher: Webapp Docs (default) / CLI Docs */}
+      <div className="flex gap-1 rounded-xl border border-[#E5E7EB] dark:border-[#2C2E3A] bg-[#F9FAFB] dark:bg-[#15161C] p-1">
+        {Object.entries(SECTIONS).map(([key, s]) => {
+          const on = section === key;
+          return (
+            <button
+              key={key}
+              onClick={() => switchSection(key)}
+              className={`flex-1 rounded-lg px-3 py-1.5 text-[14px] font-medium transition-colors ${
+                on
+                  ? "bg-[#714B67] text-white shadow-sm"
+                  : "text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white"
+              }`}
+            >
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
       {grouped.map(([group, pages]) => (
         <div key={group}>
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF] dark:text-[#6B7280]">
+          <p className="mb-2 px-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF] dark:text-[#6B7280]">
             {group}
           </p>
           <div className="flex flex-col">
@@ -576,7 +943,7 @@ export default function DocsPage() {
                 <button
                   key={p.id}
                   onClick={() => go(p.id)}
-                  className={`rounded-lg px-3 py-1.5 text-left text-[14px] transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-left text-[15px] transition-colors ${
                     on
                       ? "bg-[#F3EEF3] dark:bg-[#2A2130] font-medium text-[#714B67] dark:text-[#C4A0BA]"
                       : "text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white hover:bg-[#F3F4F6] dark:hover:bg-[#22242E]"
@@ -596,9 +963,9 @@ export default function DocsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#1A1B22]">
+    <div className={`min-h-screen bg-white dark:bg-[#1A1B22] ${theme === "dark" ? "dark" : ""}`}>
       {/* Top bar */}
-      <header className="sticky top-0 z-40 h-14 border-b border-[#E5E7EB] dark:border-[#2C2E3A] bg-white/90 dark:bg-[#1A1B22]/90 backdrop-blur">
+      <header className="sticky top-0 z-40 h-16 border-b border-[#E5E7EB] dark:border-[#2C2E3A] bg-white/90 dark:bg-[#1A1B22]/90 backdrop-blur">
         <div className="mx-auto flex h-full max-w-[1400px] items-center gap-4 px-4">
           <button onClick={() => setNavOpen((v) => !v)} className="lg:hidden -ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] dark:hover:bg-[#22242E]">
             {navOpen ? <X size={18} /> : <List size={18} />}
@@ -627,9 +994,6 @@ export default function DocsPage() {
             <Link to="/" className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white md:flex">
               <House size={14} /> Home
             </Link>
-            <a href="#" className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white md:flex">
-              <GithubLogo size={14} /> GitHub
-            </a>
             <button onClick={toggle} title="Toggle theme" className="flex h-9 w-9 items-center justify-center rounded-full text-[#6B7280] hover:bg-[#F3F4F6] dark:hover:bg-[#22242E]">
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -649,23 +1013,16 @@ export default function DocsPage() {
 
       <div className="mx-auto max-w-[1400px] px-4 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[15rem_minmax(0,1fr)_14rem]">
         {/* Left sidebar */}
-        <aside className="hidden lg:block sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto py-8 pr-2">
+        <aside className="hidden lg:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto py-8 pr-2">
           <SidebarNav />
         </aside>
 
         {/* Main content */}
         <main className="min-w-0 py-10">
-          <div className="mb-6 flex items-start justify-between gap-4">
-            <h1 className="font-serif text-[40px] leading-tight tracking-tight text-[#111827] dark:text-white">
+          <div className="mb-6">
+            <h1 className="font-serif text-[42px] leading-tight tracking-tight text-[#111827] dark:text-white">
               {active.title}
             </h1>
-            <button
-              onClick={copyPage}
-              className="mt-2 flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#E5E7EB] dark:border-[#363847] bg-white dark:bg-[#252733] px-3 py-1.5 text-[13px] text-[#4B5563] dark:text-[#9CA3AF] hover:border-[#714B67]/40 hover:text-[#714B67] dark:hover:text-[#C4A0BA]"
-            >
-              {copied ? <Check size={14} weight="bold" className="text-emerald-500" /> : <Copy size={14} />}
-              {copied ? "Copied" : "Copy"}
-            </button>
           </div>
 
           <article ref={contentRef} className="max-w-2xl">
@@ -675,12 +1032,12 @@ export default function DocsPage() {
           {/* Prev / next */}
           <div className="mt-16 flex items-center justify-between gap-4 border-t border-[#E5E7EB] dark:border-[#2C2E3A] pt-6 max-w-2xl">
             {activeIndex > 0 ? (
-              <button onClick={() => go(PAGES[activeIndex - 1].id)} className="group flex items-center gap-2 text-[14px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]">
+              <button onClick={() => go(PAGES[activeIndex - 1].id)} className="group flex items-center gap-2 text-[15px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]">
                 <ArrowLeft size={15} /> <span>{PAGES[activeIndex - 1].title}</span>
               </button>
             ) : <span />}
             {activeIndex < PAGES.length - 1 ? (
-              <button onClick={() => go(PAGES[activeIndex + 1].id)} className="group ml-auto flex items-center gap-2 text-right text-[14px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]">
+              <button onClick={() => go(PAGES[activeIndex + 1].id)} className="group ml-auto flex items-center gap-2 text-right text-[15px] text-[#4B5563] dark:text-[#9CA3AF] hover:text-[#714B67] dark:hover:text-[#C4A0BA]">
                 <span>{PAGES[activeIndex + 1].title}</span> <ArrowRight size={15} />
               </button>
             ) : <span />}
@@ -688,10 +1045,10 @@ export default function DocsPage() {
         </main>
 
         {/* Right "on this page" */}
-        <aside className="hidden xl:block sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto py-10">
+        <aside className="hidden xl:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto py-10">
           {toc.length > 0 && (
             <>
-              <p className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF] dark:text-[#6B7280]">
+              <p className="mb-3 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF] dark:text-[#6B7280]">
                 <TextAlignLeft size={13} /> On this page
               </p>
               <div className="flex flex-col gap-1.5 border-l border-[#E5E7EB] dark:border-[#2C2E3A]">
@@ -699,7 +1056,7 @@ export default function DocsPage() {
                   <button
                     key={t.id}
                     onClick={() => scrollTo(t.id)}
-                    className={`-ml-px border-l pl-3 text-left text-[13px] leading-5 transition-colors ${
+                    className={`-ml-px border-l pl-3 text-left text-[14px] leading-5 transition-colors ${
                       activeHeading === t.id
                         ? "border-[#714B67] text-[#714B67] dark:text-[#C4A0BA]"
                         : "border-transparent text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-white"

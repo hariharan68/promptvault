@@ -1,12 +1,16 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { MotionConfig } from "motion/react";
-import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { AuthProvider } from "./context/AuthContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
+import { MarketingThemeProvider } from "./context/MarketingThemeContext.jsx";
 import { ToastProvider } from "./components/common/Toast.jsx";
 import ProtectedRoute from "./components/common/ProtectedRoute.jsx";
 import AppLayout from "./layouts/AppLayout.jsx";
-import LandingPage from "./pages/LandingPage.jsx";
+import FeaturesPage from "./pages/FeaturesPage.jsx";
+import CliPage from "./pages/CliPage.jsx";
 import DocsPage from "./pages/DocsPage.jsx";
+import HowItWorksPage from "./pages/HowItWorksPage.jsx";
+import PricingPage from "./pages/PricingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
@@ -17,28 +21,20 @@ import NotFoundPage from "./pages/NotFoundPage.jsx";
 import TrashPage from "./pages/TrashPage.jsx";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage.jsx";
 
-function HomeGate() {
-  const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[#1A1B22]">
-        <div className="w-5 h-5 border-2 border-[#714B67]/30 border-t-[#714B67] rounded-full animate-spin" />
-      </div>
-    );
-  }
-  if (user) return <Navigate to="/dashboard" replace />;
-  return <LandingPage />;
-}
-
 export default function App() {
   return (
     <MotionConfig reducedMotion="user">
     <ThemeProvider>
+      <MarketingThemeProvider>
       <ToastProvider>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<HomeGate />} />
+            <Route path="/" element={<Navigate to="/features" replace />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/cli" element={<CliPage />} />
             <Route path="/docs" element={<DocsPage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
@@ -61,6 +57,7 @@ export default function App() {
           </Routes>
         </AuthProvider>
       </ToastProvider>
+      </MarketingThemeProvider>
     </ThemeProvider>
     </MotionConfig>
   );
